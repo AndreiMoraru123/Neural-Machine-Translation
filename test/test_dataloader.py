@@ -10,6 +10,11 @@ from unittest.mock import patch
 from dataloader import SequenceLoader
 
 
+def data_folder_exists():
+    """Check if the data folder exists."""
+    return os.path.isdir("data")
+
+
 @pytest.fixture(name="train_config")
 def training_configuration():
     """Configuration parameters for data loader initialization."""
@@ -43,17 +48,20 @@ def sequence_loader(train_config):
     return loader
 
 
+@pytest.mark.skipif(not data_folder_exists(), reason="Data folder doesn't exist")
 def test_sequence_loader_initialization(dummy_loader):
     """Test initialization of a dummy data loader."""
-    assert isinstance(dummy_loader, SequenceLoader), "mock testing has probably failed"
+    assert isinstance(dummy_loader, SequenceLoader), "Mock testing has probably failed."
 
 
+@pytest.mark.skipif(not data_folder_exists(), reason="Data folder doesn't exist")
 def test_create_batches(loader):
     """Initialize without mocking `create_batches()`."""
     assert loader.n_batches == len(loader.all_batches)
     assert loader.current_batch == -1
 
 
+@pytest.mark.skipif(not data_folder_exists(), reason="Data folder doesn't exist")
 def test_next_dunder(loader):
     """Test iteration over data loader"""
     source_data, target_data, source_lengths, target_lengths = loader.__next__()
