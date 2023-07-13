@@ -1,8 +1,4 @@
 einops==0.6.1
-oauthlib==3.2.2
-opt-einsum==3.3.0
-packaging==23.1
-pip==23.1.2
 pytest==7.4.0
 tensorflow-text==2.10.0
 tensorflow==2.10.0
