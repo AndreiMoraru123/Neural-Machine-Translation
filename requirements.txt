@@ -1,4 +1,4 @@
-cython==0.29.36
+Cython==0.29.36
 einops==0.6.1
 oauthlib==3.2.2
 opt-einsum==3.3.0
