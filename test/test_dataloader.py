@@ -2,9 +2,8 @@
 import os
 
 # third-party imports
-import pytest
-import youtokentome
-import tensorflow as tf
+import pytest  # type: ignore
+import tensorflow as tf  # type: ignore
 from unittest.mock import patch
 
 # module imports
