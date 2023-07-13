@@ -109,32 +109,27 @@ class MultiHeadAttention(layers.Layer):
         # (N * n_heads, query_sequence_pad_length, key_value_sequence_pad_length)
         attention_weights = (1. / math.sqrt(self.d_keys)) * attention_weights  # scale
 
-        # Mask the paddings in the keys
+        # Use broadcasting for comparison to mask paddings
         range_tensor = tf.range(key_value_sequence_pad_length, dtype=tf.int32)  # (key_value_sequence_pad_length)
-        # Expand range tensor
-        range_tensor = tf.expand_dims(range_tensor, axis=0)  # (1, key_value_sequence_pad_length
-        # Repeat range tensor to shape (N * query_sequence_pad_length * n_heads, key_value_sequence_pad_length)
-        range_tensor = tf.tile(range_tensor, [tf.reduce_prod(attention_weights.shape[:-1]), 1])
-        # Reshape into the final form (N * query_sequence_pad_length, key_value_sequence_pad_length)
-        range_tensor = tf.reshape(range_tensor, attention_weights.shape)
 
-        lengths_tensor = tf.repeat(tf.expand_dims(key_value_sequence_lengths, -1),  # (N, key_value_sequence_pad_length)
-                                 key_value_sequence_pad_length, axis=-1)
-        # Expand to (N, 1, query_sequence_pad_length * key_value_sequence_pad_length)
-        lengths_tensor = tf.repeat(tf.expand_dims(lengths_tensor, 1), query_sequence_pad_length, axis=-1)
-        # Expand to (N, n_heads, 1, query_sequence_pad_length * key_value_sequence_pad_length)
-        lengths_tensor = tf.repeat(tf.expand_dims(lengths_tensor, 1), self.n_heads, axis=1)
-        # Broadcast back to (N * n_heads, query_sequence_pad_length, key_value_sequence_pad_length)
-        lengths_tensor = tf.reshape(lengths_tensor, attention_weights.shape)
+        # Repeat key_value_sequence_lengths to match the number of heads
+        lengths_tensor = tf.repeat(key_value_sequence_lengths, self.n_heads)  # (N * n_heads)
 
-        not_pad_in_keys = range_tensor < lengths_tensor
+        # Use broadcasting for comparison -> (N * n_heads, 1, key_value_sequence_pad_length)
+        not_pad_in_keys = range_tensor[None, None, :] < lengths_tensor[:, None, None]
+
+        # Repeat along the query_sequence_pad_length dimension to match the shape of attention_weights, i.e.
+        # (N * n_heads, query_sequence_pad_length, key_value_sequence_pad_length)
+        not_pad_in_keys = tf.repeat(not_pad_in_keys, query_sequence_pad_length, axis=1)
 
         attention_weights = tf.where(not_pad_in_keys, attention_weights, -float('inf'))
 
         def mask_future():
+            """Masks future unseen tokens for decoding."""
             not_future_mask = tf.cast(tf.linalg.band_part(tf.ones_like(attention_weights), -1, 0), tf.bool)
             return tf.where(not_future_mask, attention_weights, -float('inf'))
 
+        # Decide whether attention weights stay the same (encoding) or get masked (decoding)
         attention_weights = tf.cond(tf.logical_and(self.in_decoder, self_attention),
                                     true_fn=mask_future, false_fn=lambda: attention_weights)
 
@@ -156,6 +151,3 @@ class MultiHeadAttention(layers.Layer):
         sequences = self.dropout(sequences) + input_to_add
 
         return sequences
-
-
-
