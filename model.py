@@ -58,8 +58,6 @@ class MultiHeadAttention(layers.Layer):
         :param key_value_sequence_lengths: true lengths of the key_value_sequences, meant to ignore pads, (N)
         :return: attention-weighted output sequences for the query sequences, (N, query_sequence_pad_length, d_model)
         """
-
-        batch_size = tf.shape(query_sequences)[0]  # (N)
         query_sequence_pad_length = tf.shape(query_sequences)[1]
         key_value_sequence_pad_length = tf.shape(key_value_sequences)[1]
 
@@ -72,7 +70,7 @@ class MultiHeadAttention(layers.Layer):
                                       true_fn=lambda: self.layer_norm(key_value_sequences),  # need layer normalization
                                       false_fn=lambda: key_value_sequences)  # they have already been normalized
 
-        input_to_add = query_sequences  # tf Tensors are immutable, so no worries
+        input_to_add = query_sequences  # tf Tensors are immutable, so no worries, assigning creates a copy by itself
 
         queries = self.cast_queries(query_sequences)  # (N, query_sequence_pad_length, n_heads * d_queries)
         keys_values = self.cast_keys_values(key_value_sequences)
@@ -94,6 +92,8 @@ class MultiHeadAttention(layers.Layer):
             values, 'b kv (h d) -> b kv h d',  # (N, key_value_sequence_pad_length, n_heads, d_values)
             h=self.n_heads, d=self.d_values
         )
+
+        # We want to parallelize the attentions, so we extend the heads as batches, so the 4D tensors become 3D.
 
         queries = einops.rearrange(
             queries, 'b q h d -> (b h) q d'  # (N * n_heads, query_sequence_pad_length, d_queries)
@@ -149,5 +149,44 @@ class MultiHeadAttention(layers.Layer):
         sequences = self.cast_output(sequences)  # (N, query_sequence_pad_length, d_model)
         # Dropout and residual connection
         sequences = self.dropout(sequences) + input_to_add
+
+        return sequences
+
+
+class FeedForward(layers.Layer):
+    """The Feed Forward Network transformer layer."""
+
+    def __init__(self, d_model: int, d_inner: int, dropout: float, **kwargs):
+        """
+
+        :param d_model: input and output sizes for this sublayer.
+        :param d_inner: in-between linear transforms dimension.
+        :param dropout: dropout probability.
+        """
+
+        super(FeedForward, self).__init__(**kwargs)
+        self.d_model = d_model
+        self.d_inner = d_inner
+
+        self.layer_norm = layers.LayerNormalization()
+        self.fc1 = layers.Dense(d_inner)
+        self.fc2 = layers.Dense(d_model)
+        self.dropout = layers.Dropout(dropout)
+
+    def call(self, sequences: tf.Tensor) -> tf.Tensor:
+        """
+        Forward pass of the feed forward layer.
+        :param sequences: input sequences a Tensor of shape (N, pad_length, d_model)
+        :return: output sequences, a Tensor of shape (N, pad_length, d_model)
+        """
+
+        input_to_add = sequences  # (N, pad_length, d_model)
+        sequences = self.layer_norm(sequences)  # (N, pad_length, d_model)
+
+        # Force the model to learn into a different dimensionality
+        sequences = self.dropout(tf.nn.relu(self.fc1(sequences)))  # (N, pad_length, d_inner)
+        sequences = self.fc2(sequences)  # (N, pad_length, d_model)
+
+        sequences = self.dropout(sequences) + input_to_add # (N, pad_length, d_model)
 
         return sequences
