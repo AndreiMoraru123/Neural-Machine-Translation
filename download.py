@@ -5,7 +5,7 @@ import shutil
 import subprocess
 
 # third-party imports
-import wget
+import wget  # type: ignore
 
 
 def download_data(data_folder: str):
