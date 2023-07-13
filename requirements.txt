@@ -1,5 +1,4 @@
 einops==0.6.1
-pytest==7.4.0
 tensorflow-text==2.10.0
 tensorflow==2.10.0
 youtokentome~=1.0.6
