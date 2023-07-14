@@ -1,6 +1,3 @@
-# standard imports
-import math
-
 # third-party imports
 import einops
 import tensorflow as tf  # type: ignore
@@ -54,7 +51,7 @@ class MultiHeadAttention(layers.Layer):
         """
         Forward pass for all the heads.
 
-        :param training: training mode (apply dropout) or in inference mode (not apply dropout)
+        :param training: training mode (apply dropout) or inference mode (not apply dropout)
         :param query_sequences: input query sequences, a Tensor of shape (N, query_sequence_pad_length, d_model)
         :param key_value_sequences: the sequences to be queried against, (N, key_value_sequence_pad_length, d_model)
         :param key_value_sequence_lengths: true lengths of the key_value_sequences, meant to ignore pads, (N)
@@ -179,7 +176,7 @@ class FeedForward(layers.Layer):
         """
         Forward pass of the feed forward layer.
 
-        :param training: training mode (apply dropout) or in inference mode (do not apply dropout)
+        :param training: training mode (apply dropout) or inference mode (do not apply dropout)
         :param sequences: input sequences a Tensor of shape (N, pad_length, d_model)
         :return: output sequences, a Tensor of shape (N, pad_length, d_model)
         """
@@ -249,7 +246,7 @@ class Encoder(layers.Layer):
 
         :param encoder_sequences: the source language sequences, a Tensor of shape (N, pad_length)
         :param encoder_sequence_lengths: true lengths of these sequences, a Tensor of shape (N)
-        :param training: training mode (apply dropout) or in inference mode (do not apply dropout)
+        :param training: training mode (apply dropout) or inference mode (do not apply dropout)
         :return: encoded source language sequences, a Tensor of shape (N, pad_length, d_model)
         """
 
@@ -271,3 +268,99 @@ class Encoder(layers.Layer):
         encoder_sequences = self.layer_norm(encoder_sequences)  # (N, pad_length, d_model)
 
         return encoder_sequences
+
+
+class Decoder(layers.Layer):
+    """Decoder Transformer for target language."""
+
+    def __init__(self, vocab_size: int, positional_encoding: tf.Tensor, d_model: int, n_heads: int,
+                 d_queries: int, d_values: int, d_inner: int, n_layers: int, dropout: float, **kwargs):
+        """
+        Initializes the Decoder.
+
+        :param vocab_size: the size of the shared vocabulary
+        :param positional_encoding: positional encodings up to the maximum possible pad-length
+        :param d_model: size of vectors throughout the transformer model in the Encoder
+        :param n_heads: number of heads in the multi-head attention layer
+        :param d_queries: size of the query vectors (and key vectors) in the multi-head attention layyer
+        :param d_values: size of the value vectors in the multi-head attention
+        :param d_inner: in-between linear transforms dimension in the feed forward layer
+        :param n_layers: number of [multi head attention + feed forward] layers in the Encoder
+        :param dropout: dropout probability
+        """
+        super(Decoder, self).__init__(**kwargs)
+
+        self.vocab_size = vocab_size
+        self.positional_encoding = positional_encoding
+        self.d_model = d_model
+        self.n_heads = n_heads
+        self.d_queries = d_queries
+        self.d_values = d_values
+        self.d_inner = d_inner
+        self.n_layers = n_layers
+        self.dropout = dropout
+
+        self.embedding = layers.Embedding(vocab_size, d_model)
+        self.decoder_layers = [self._make_layer() for _ in range(n_layers)]
+        self.dropout_layer = layers.Dropout(dropout)
+        self.layer_norm = layers.LayerNormalization()
+        self.fc = layers.Dense(vocab_size)
+
+    def _make_layer(self):
+        """Creates a single encoder layer by combining MHA + FFN sub layers."""
+
+        multi_head_attention_self = MultiHeadAttention(d_model=self.d_model, n_heads=self.n_heads,
+                                                       d_queries=self.d_queries, d_values=self.d_values,
+                                                       dropout=self.dropout, in_decoder=True)
+        multi_head_attention_cross = MultiHeadAttention(d_model=self.d_model, n_heads=self.n_heads,
+                                                        d_queries=self.d_queries, d_values=self.d_values,
+                                                        dropout=self.dropout, in_decoder=True)
+        feed_forward_network = FeedForward(d_model=self.d_model, d_inner=self.d_inner, dropout=self.dropout)
+
+        return [multi_head_attention_self, multi_head_attention_cross, feed_forward_network]
+
+    def call(
+        self,
+        decoder_sequences: tf.Tensor,
+        decoder_sequence_lengths: tf.Tensor,
+        encoder_sequences: tf.Tensor,
+        encoder_sequence_lengths: tf.Tensor,
+        training: bool = True
+    ) -> tf.Tensor:
+        """
+        Forward pass of the Decoder.
+
+        :param decoder_sequences: the source language sequences, a Tensor of shape (N, pad_length)
+        :param decoder_sequence_lengths: true lengths of these sequences, a Tensor of shape (N)
+        :param encoder_sequences: encoded source language sequences, a Tensor of shape (N, encoder_pad_length, d_model)
+        :param encoder_sequence_lengths: true lengths of these sequences, a Tensor of shape (N)
+        :param training: training mode (apply dropout) or inference mode (do not apply dropout)
+        :return: decoded target language sequence, a Tensor of shape (N, pad_length, vocab_size)
+        """
+
+        pad_length = tf.shape(decoder_sequences)[1]  # for this batch only, varies across batches
+        decoder_sequences = self.embedding(decoder_sequences) * tf.math.sqrt(tf.cast(self.d_model, tf.float32))
+        decoder_sequences += self.positional_encoding[:, :pad_length, :]  # (N, pad_length, d_model)
+
+        decoder_sequences = self.dropout_layer(decoder_sequences, training=training)  # (N, pad_length, d_model)
+
+        for decoder_layer in self.decoder_layers:
+            # Multi Head Self Attention layer
+            decoder_sequences = decoder_layer[0](query_sequences=decoder_sequences,
+                                                 key_value_sequences=decoder_sequences,
+                                                 key_value_sequence_lengths=decoder_sequence_lengths,
+                                                 training=training)
+            # Multi Head Cross Attention layer
+            decoder_sequences = decoder_layer[1](query_sequences=decoder_sequences,
+                                                 key_value_sequences=encoder_sequences,
+                                                 key_value_sequence_lengths=encoder_sequence_lengths,
+                                                 training=training)
+            # Feed Forward layer
+            decoder_sequences = decoder_layer[2](sequences=decoder_sequences, training=training)
+
+        decoder_sequences = self.layer_norm(decoder_sequences)  # (N, pad_length, d_model)
+
+        # Compute across vocabulary dimension
+        decoder_sequences = self.fc(decoder_sequences)  # (N, pad_length, d_model)
+
+        return decoder_sequences
