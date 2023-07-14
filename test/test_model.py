@@ -3,7 +3,7 @@ import pytest  # type: ignore
 import tensorflow as tf  # type: ignore
 
 # module imports
-from model import MultiHeadAttention, FeedForward, Encoder, Decoder
+from model import MultiHeadAttention, FeedForward, Encoder, Decoder, Transformer
 
 
 @pytest.fixture(name='mha_layer_config')
@@ -65,6 +65,23 @@ def decoder_layer_configuration():
     return config
 
 
+@pytest.fixture(name='transformer_config')
+def transformer_configuration():
+    """Configuration parameters for initializing Transformer."""
+    config = {
+        "vocab_size": 10000,
+        "positional_encoding": tf.random.uniform((1, 100, 128)),
+        "d_model": 128,
+        "n_heads": 8,
+        "d_queries": 16,
+        "d_values": 16,
+        "d_inner": 512,
+        "n_layers": 6,
+        "dropout": 0.1,
+    }
+    return config
+
+
 @pytest.fixture(name="mha_layer")
 def multi_head_attention_layer(mha_layer_config):
     """Multi Head Attention layer."""
@@ -91,6 +108,13 @@ def decoder_layer(decoder_layer_config):
     """Decoder layer."""
     layer = Decoder(**decoder_layer_config)
     return layer
+
+
+@pytest.fixture(name='transformer')
+def transformer_layer(transformer_config):
+    """Initialize Transformer with the given configuration."""
+    transformer = Transformer(**transformer_config)
+    return transformer
 
 
 @pytest.fixture(name="mha_input_data", params=[(10, 25, 128)])
@@ -142,6 +166,20 @@ def input_data_for_decoder_layer(request, decoder_layer_config):
     return decoder_sequences, decoder_sequence_lengths, encoder_sequences, encoder_sequence_lengths
 
 
+@pytest.fixture(name='transformer_input_data', params=[(10, 25)])
+def input_data_for_transformer(request, transformer_config):
+    """Generate input data for Transformer."""
+    batch_size, seq_len = request.param
+
+    # Token sequences
+    encoder_sequences = tf.random.uniform((batch_size, seq_len), minval=0, maxval=10000, dtype=tf.int32)
+    encoder_sequence_lengths = tf.ones((batch_size,), dtype=tf.int32) * seq_len
+    decoder_sequences = tf.random.uniform((batch_size, seq_len), minval=0, maxval=10000, dtype=tf.int32)
+    decoder_sequence_lengths = tf.ones((batch_size,), dtype=tf.int32) * seq_len
+
+    return encoder_sequences, encoder_sequence_lengths, decoder_sequences, decoder_sequence_lengths
+
+
 def test_multi_head_attention_layer_initialization(mha_layer):
     """Tests initialization of a MultiHeadAttention Layer."""
     assert isinstance(mha_layer, MultiHeadAttention), "Layer is not a MultiHeadAttention instance."
@@ -160,6 +198,11 @@ def test_encoder_layer_initialization(encoder_layer):
 def test_decoder_layer_initialization(decoder_layer):
     """Tests initialization of a Decoder Layer."""
     assert isinstance(decoder_layer, Decoder), "Layer is not a Decoder instance."
+
+
+def test_transformer_initialization(transformer):
+    """Tests initialization of a Transformer."""
+    assert isinstance(transformer, Transformer), "Layer is not a Transformer instance."
 
 
 def test_multi_head_attention_layer_forward_pass(mha_layer, mha_input_data):
@@ -214,3 +257,15 @@ def test_decoder_layer_forward_pass(decoder_layer, decoder_input_data):
     # Assert the output shape is as expected
     expected_shape = (decoder_sequences.shape[0], decoder_sequences.shape[1], decoder_layer.vocab_size)
     assert output.shape == expected_shape, f"Expected output shape {expected_shape}, but got {output.shape}"
+
+
+def test_transformer_forward_pass(transformer, transformer_input_data):
+    """Tests forward pass of a Transformer."""
+    encoder_sequences, encoder_sequence_lengths, decoder_sequences, decoder_sequence_lengths = transformer_input_data
+
+    output = transformer(encoder_sequences, decoder_sequences, encoder_sequence_lengths, decoder_sequence_lengths)
+
+    # Assert the output shape is as expected
+    expected_shape = (decoder_sequences.shape[0], decoder_sequences.shape[1], transformer.vocab_size)
+    assert output.shape == expected_shape, f"Expected output shape {expected_shape}, but got {output.shape}"
+

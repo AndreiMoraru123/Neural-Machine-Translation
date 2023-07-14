@@ -364,3 +364,85 @@ class Decoder(layers.Layer):
         decoder_sequences = self.fc(decoder_sequences)  # (N, pad_length, d_model)
 
         return decoder_sequences
+
+
+class Transformer(layers.Layer):
+    """The Transformer network."""
+
+    def __init__(self, vocab_size: int, positional_encoding: tf.Tensor, d_model: int = 512, n_heads: int = 8,
+                 d_queries: int = 64, d_values: int = 64, d_inner: int = 2048, n_layers: int = 6, dropout: float = 0.1):
+        """
+        Initializes the transformer network.
+
+        :param vocab_size: size of the shared vocabulary, i.e. total number of word tokens
+        :param positional_encoding: positional encodings up to the maximum possible pad-length
+        :param d_model: size of the vectors throughout the transformer model
+        :param n_heads: number of heads in the multi-head attention layer
+        :param d_queries: size of the query vectors (and key vectors) in the multi-head attention layer
+        :param d_values: size of the value vectors in the multi-head attention layer
+        :param d_inner: in between linear transforms size in the feed forward layer
+        :param n_layers: number of layers in the Encoder and Decoder
+        :param dropout: dropout probability
+        """
+        super(Transformer, self).__init__()
+
+        self.vocab_size = vocab_size
+        self.positional_encoding = positional_encoding
+        self.d_model = d_model
+        self.n_heads = n_heads
+        self.d_queries = d_queries
+        self.d_values = d_values
+        self.d_inner = d_inner
+        self.n_layers = n_layers
+
+        self.encoder = Encoder(vocab_size=vocab_size,
+                               positional_encoding=positional_encoding,
+                               d_model=d_model,
+                               n_heads=n_heads,
+                               d_queries=d_queries,
+                               d_values=d_values,
+                               d_inner=d_inner,
+                               n_layers=n_layers,
+                               dropout=dropout)
+
+        self.decoder = Decoder(vocab_size=vocab_size,
+                               positional_encoding=positional_encoding,
+                               d_model=d_model,
+                               n_heads=n_heads,
+                               d_queries=d_queries,
+                               d_values=d_values,
+                               d_inner=d_inner,
+                               n_layers=n_layers,
+                               dropout=dropout)
+
+    def call(
+        self,
+        encoder_sequences: tf.Tensor,
+        decoder_sequences: tf.Tensor,
+        encoder_sequence_lengths: tf.Tensor,
+        decoder_sequence_lengths: tf.Tensor,
+        training: bool = False
+    ) -> tf.Tensor:
+        """
+        Forward pass of the Transformer network.
+
+        :param encoder_sequences: source language sequences, a tensor of size (N, encoder_sequence_pad_length)
+        :param decoder_sequences: target language sequences, a tensor of size (N, decoder_sequence_pad_length)
+        :param encoder_sequence_lengths: true lengths of source language sequences, a tensor of size (N)
+        :param decoder_sequence_lengths: true lengths of target language sequences, a tensor of size (N)
+        :param training: training mode (apply dropout) or inference mode (not apply dropout)
+        :return: decoded target language sequences, a tensor of size (N, decoder_sequence_pad_length, vocab_size)
+        """
+
+        encoder_sequences = self.encoder(encoder_sequences,  # (N, encoder_sequence_pod_length, d_model)
+                                         encoder_sequence_lengths,
+                                         training=training)
+
+        decoder_sequences = self.decoder(decoder_sequences,  # (N, decoder_sequence_pad_length, vocab_size)
+                                         decoder_sequence_lengths,
+                                         encoder_sequences,
+                                         encoder_sequence_lengths)
+
+        return decoder_sequences
+
+
