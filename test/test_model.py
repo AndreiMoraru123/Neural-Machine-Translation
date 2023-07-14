@@ -3,7 +3,7 @@ import pytest  # type: ignore
 import tensorflow as tf  # type: ignore
 
 # module imports
-from model import MultiHeadAttention, FeedForward
+from model import MultiHeadAttention, FeedForward, Encoder
 
 
 @pytest.fixture(name='mha_layer_config')
@@ -31,6 +31,23 @@ def feed_forward_layer_configuration():
     return config
 
 
+@pytest.fixture(name='encoder_layer_config')
+def encoder_layer_configuration():
+    """Configuration parameters for initializing Encoder."""
+    config = {
+        "vocab_size": 10000,
+        "positional_encoding": tf.random.uniform((1, 100, 128)),
+        "d_model": 128,
+        "n_heads": 8,
+        "d_queries": 16,
+        "d_values": 16,
+        "d_inner": 512,
+        "n_layers": 6,
+        "dropout": 0.1,
+    }
+    return config
+
+
 @pytest.fixture(name="mha_layer")
 def multi_head_attention_layer(mha_layer_config):
     """Multi Head Attention layer."""
@@ -42,6 +59,13 @@ def multi_head_attention_layer(mha_layer_config):
 def feed_forward_layer(ffn_layer_config):
     """Feed Forward layer."""
     layer = FeedForward(**ffn_layer_config)
+    return layer
+
+
+@pytest.fixture(name="encoder_layer")
+def encoder_layer(encoder_layer_config):
+    """Encoder layer."""
+    layer = Encoder(**encoder_layer_config)
     return layer
 
 
@@ -61,6 +85,16 @@ def input_data_for_feed_forward_layer(request):
     batch_size, seq_len, d_model = request.param
     sequences = tf.random.uniform((batch_size, seq_len, d_model), dtype=tf.float32)
     return sequences
+
+
+@pytest.fixture(name="encoder_input_data", params=[(10, 25)])
+def input_data_for_encoder_layer(request):
+    batch_size, seq_len = request.param
+
+    encoder_sequences = tf.random.uniform((batch_size, seq_len), minval=0, maxval=10000, dtype=tf.int32)
+    encoder_sequence_lengths = tf.ones((batch_size,), dtype=tf.int32) * seq_len
+
+    return encoder_sequences, encoder_sequence_lengths
 
 
 def test_multi_head_attention_layer_initialization(mha_layer):
@@ -103,3 +137,19 @@ def test_feed_forward_layer_forward_pass(ffn_layer, ffn_input_data):
 
     # Assert the output is different from the input (i.e., the layer is doing something)
     assert not tf.reduce_all(tf.equal(sequences, output)), "The output is the same as the input."
+
+
+def test_encoder_layer_initialization(encoder_layer):
+    """Tests initialization of an Encoder Layer."""
+    assert isinstance(encoder_layer, Encoder), "Layer is not an Encoder instance."
+
+
+def test_encoder_layer_forward_pass(encoder_layer, encoder_input_data):
+    """Tests forward pass of an Encoder Layer."""
+    encoder_sequences, encoder_sequence_lengths = encoder_input_data
+
+    output = encoder_layer(encoder_sequences, encoder_sequence_lengths)
+
+    # Assert the output shape is as expected
+    expected_shape = (encoder_sequences.shape[0], encoder_sequences.shape[1], encoder_layer.d_model)
+    assert output.shape == expected_shape, f"Expected output shape {expected_shape}, but got {output.shape}"

@@ -48,11 +48,13 @@ class MultiHeadAttention(layers.Layer):
         self,
         query_sequences: tf.Tensor,
         key_value_sequences: tf.Tensor,
-        key_value_sequence_lengths: tf.Tensor
+        key_value_sequence_lengths: tf.Tensor,
+        training: bool = True,
     ) -> tf.Tensor:
         """
         Forward pass for all the heads.
 
+        :param training: training mode (apply dropout) or in inference mode (not apply dropout)
         :param query_sequences: input query sequences, a Tensor of shape (N, query_sequence_pad_length, d_model)
         :param key_value_sequences: the sequences to be queried against, (N, key_value_sequence_pad_length, d_model)
         :param key_value_sequence_lengths: true lengths of the key_value_sequences, meant to ignore pads, (N)
@@ -107,7 +109,7 @@ class MultiHeadAttention(layers.Layer):
 
         attention_weights = tf.linalg.matmul(queries, keys, transpose_b=True)  # dot product
         # (N * n_heads, query_sequence_pad_length, key_value_sequence_pad_length)
-        attention_weights = (1. / math.sqrt(self.d_keys)) * attention_weights  # scale
+        attention_weights = (1. / tf.math.sqrt(tf.cast(self.d_keys, dtype=tf.float32))) * attention_weights  # scale
 
         # Use broadcasting for comparison to mask paddings
         range_tensor = tf.range(key_value_sequence_pad_length, dtype=tf.int32)  # (key_value_sequence_pad_length)
@@ -134,7 +136,7 @@ class MultiHeadAttention(layers.Layer):
                                     true_fn=mask_future, false_fn=lambda: attention_weights)
 
         attention_weights = tf.nn.softmax(attention_weights)  # softmax along the key dimension
-        attention_weights = self.dropout(attention_weights)
+        attention_weights = self.dropout(attention_weights, training=training)
 
         sequences = tf.linalg.matmul(attention_weights, values)  # (N * n_heads, query_sequence_pad_length, d_values)
 
@@ -148,7 +150,7 @@ class MultiHeadAttention(layers.Layer):
         # Transform the concatenated subspace sequences into a single output of size d_model
         sequences = self.cast_output(sequences)  # (N, query_sequence_pad_length, d_model)
         # Dropout and residual connection
-        sequences = self.dropout(sequences) + input_to_add
+        sequences = self.dropout(sequences, training=training) + input_to_add
 
         return sequences
 
@@ -158,12 +160,12 @@ class FeedForward(layers.Layer):
 
     def __init__(self, d_model: int, d_inner: int, dropout: float, **kwargs):
         """
+        Initializes the Feed Forward Layer.
 
         :param d_model: input and output sizes for this sublayer.
         :param d_inner: in-between linear transforms dimension.
         :param dropout: dropout probability.
         """
-
         super(FeedForward, self).__init__(**kwargs)
         self.d_model = d_model
         self.d_inner = d_inner
@@ -173,20 +175,99 @@ class FeedForward(layers.Layer):
         self.fc2 = layers.Dense(d_model)
         self.dropout = layers.Dropout(dropout)
 
-    def call(self, sequences: tf.Tensor) -> tf.Tensor:
+    def call(self, sequences: tf.Tensor, training: bool = True) -> tf.Tensor:
         """
         Forward pass of the feed forward layer.
+
+        :param training: training mode (apply dropout) or in inference mode (do not apply dropout)
         :param sequences: input sequences a Tensor of shape (N, pad_length, d_model)
         :return: output sequences, a Tensor of shape (N, pad_length, d_model)
         """
-
         input_to_add = sequences  # (N, pad_length, d_model)
         sequences = self.layer_norm(sequences)  # (N, pad_length, d_model)
 
         # Force the model to learn into a different dimensionality
-        sequences = self.dropout(tf.nn.relu(self.fc1(sequences)))  # (N, pad_length, d_inner)
+        sequences = self.dropout(tf.nn.relu(self.fc1(sequences)), training=training)  # (N, pad_length, d_inner)
         sequences = self.fc2(sequences)  # (N, pad_length, d_model)
-
-        sequences = self.dropout(sequences) + input_to_add # (N, pad_length, d_model)
+        sequences = self.dropout(sequences, training=training) + input_to_add  # (N, pad_length, d_model)
 
         return sequences
+
+
+class Encoder(layers.Layer):
+    """Encoder Transformer for source language."""
+
+    def __init__(self, vocab_size: int, positional_encoding: tf.Tensor, d_model: int, n_heads: int,
+                 d_queries: int, d_values: int, d_inner: int, n_layers: int, dropout: float, **kwargs):
+        """
+        Initializes the Encoder.
+
+        :param vocab_size: the size of the shared vocabulary
+        :param positional_encoding: positional encodings up to the maximum possible pad-length
+        :param d_model: size of vectors throughout the transformer model in the Encoder
+        :param n_heads: number of heads in the multi-head attention layer
+        :param d_queries: size of the query vectors (and key vectors) in the multi-head attention layyer
+        :param d_values: size of the value vectors in the multi-head attention
+        :param d_inner: in-between linear transforms dimension in the feed forward layer
+        :param n_layers: number of [multi head attention + feed forward] layers in the Encoder
+        :param dropout: dropout probability
+        """
+        super(Encoder, self).__init__(**kwargs)
+
+        self.vocab_size = vocab_size
+        self.positional_encoding = positional_encoding
+        self.d_model = d_model
+        self.n_heads = n_heads
+        self.d_queries = d_queries
+        self.d_values = d_values
+        self.d_inner = d_inner
+        self.n_layers = n_layers
+        self.dropout = dropout
+
+        self.embedding = layers.Embedding(vocab_size, d_model)
+        self.encoder_layers = [self._make_layer() for _ in range(n_layers)]
+        self.dropout_layer = layers.Dropout(dropout)
+        self.layer_norm = layers.LayerNormalization()
+
+    def _make_layer(self):
+        """Creates a single encoder layer by combining MHA + FFN sub layers."""
+
+        multi_head_attention = MultiHeadAttention(d_model=self.d_model, n_heads=self.n_heads, d_queries=self.d_queries,
+                                                  d_values=self.d_values, dropout=self.dropout, in_decoder=False)
+        feed_forward_network = FeedForward(d_model=self.d_model, d_inner=self.d_inner, dropout=self.dropout)
+
+        return [multi_head_attention, feed_forward_network]
+
+    def call(
+        self,
+        encoder_sequences: tf.Tensor,
+        encoder_sequence_lengths: tf.Tensor,
+        training: bool = True
+    ) -> tf.Tensor:
+        """
+        Forward pass of the Encoder.
+
+        :param encoder_sequences: the source language sequences, a Tensor of shape (N, pad_length)
+        :param encoder_sequence_lengths: true lengths of these sequences, a Tensor of shape (N)
+        :param training: training mode (apply dropout) or in inference mode (do not apply dropout)
+        :return: encoded source language sequences, a Tensor of shape (N, pad_length, d_model)
+        """
+
+        pad_length = tf.shape(encoder_sequences)[1]  # for this batch only, varies across batches
+        encoder_sequences = self.embedding(encoder_sequences) * tf.math.sqrt(tf.cast(self.d_model, tf.float32))
+        encoder_sequences += self.positional_encoding[:, :pad_length]  # (N, pad_length, d_model)
+
+        encoder_sequences = self.dropout_layer(encoder_sequences, training=training)  # (N, pad_length, d_model)
+
+        for encoder_layer in self.encoder_layers:
+            # Multi Head Attention layer
+            encoder_sequences = encoder_layer[0](query_sequences=encoder_sequences,
+                                                 key_value_sequences=encoder_sequences,
+                                                 key_value_sequence_lengths=encoder_sequence_lengths,
+                                                 training=training)
+            # Feed Forward layer
+            encoder_sequences = encoder_layer[1](sequences=encoder_sequences, training=training)
+
+        encoder_sequences = self.layer_norm(encoder_sequences)  # (N, pad_length, d_model)
+
+        return encoder_sequences
