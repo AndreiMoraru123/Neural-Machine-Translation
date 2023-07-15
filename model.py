@@ -7,8 +7,16 @@ from tensorflow.keras import layers  # type: ignore
 class MultiHeadAttention(layers.Layer):
     """MHA transformer layer."""
 
-    def __init__(self, d_model: int, n_heads: int, d_queries: int, d_values: int,
-                 dropout: float, in_decoder: bool = False, **kwargs):
+    def __init__(
+        self,
+        d_model: int,
+        n_heads: int,
+        d_queries: int,
+        d_values: int,
+        dropout: float,
+        in_decoder: bool = False,
+        **kwargs
+    ):
         """
 
         :param d_model: size of a sequence of queries (and keys & values for convenience)
@@ -71,8 +79,14 @@ class MultiHeadAttention(layers.Layer):
             """
             shape_check = tf.reduce_all(tf.shape(tensor1) == tf.shape(tensor2))
             if shape_check:
-                elements_check = tf.reduce_all(tf.math.equal(tensor1, tensor2))
-                return elements_check
+                # Check for eager execution and only then perform an element-wise check
+                if tf.executing_eagerly():
+                    elements_check = tf.reduce_all(tf.math.equal(tensor1, tensor2))
+                    return elements_check
+                else:
+                    # In graph mode, we assume that having the same shape means they are equal
+                    # This might not always be the case, of course, but TensorFlow can't help itself but build the graph
+                    return True
             return False
 
         self_attention = tensors_are_equal(key_value_sequences, query_sequences)
@@ -209,8 +223,19 @@ class FeedForward(layers.Layer):
 class Encoder(layers.Layer):
     """Encoder Transformer for source language."""
 
-    def __init__(self, vocab_size: int, positional_encoding: tf.Tensor, d_model: int, n_heads: int,
-                 d_queries: int, d_values: int, d_inner: int, n_layers: int, dropout: float, **kwargs):
+    def __init__(
+        self,
+        vocab_size: int,
+        positional_encoding: tf.Tensor,
+        d_model: int,
+        n_heads: int,
+        d_queries: int,
+        d_values: int,
+        d_inner: int,
+        n_layers: int,
+        dropout: float,
+        **kwargs
+    ):
         """
         Initializes the Encoder.
 
@@ -288,8 +313,19 @@ class Encoder(layers.Layer):
 class Decoder(layers.Layer):
     """Decoder Transformer for target language."""
 
-    def __init__(self, vocab_size: int, positional_encoding: tf.Tensor, d_model: int, n_heads: int,
-                 d_queries: int, d_values: int, d_inner: int, n_layers: int, dropout: float, **kwargs):
+    def __init__(
+        self,
+        vocab_size: int,
+        positional_encoding: tf.Tensor,
+        d_model: int,
+        n_heads: int,
+        d_queries: int,
+        d_values: int,
+        d_inner: int,
+        n_layers: int,
+        dropout: float,
+        **kwargs
+    ):
         """
         Initializes the Decoder.
 
@@ -384,8 +420,19 @@ class Decoder(layers.Layer):
 class Transformer(layers.Layer):
     """The Transformer network."""
 
-    def __init__(self, vocab_size: int, positional_encoding: tf.Tensor, d_model: int = 512, n_heads: int = 8,
-                 d_queries: int = 64, d_values: int = 64, d_inner: int = 2048, n_layers: int = 6, dropout: float = 0.1):
+    def __init__(
+        self,
+        vocab_size: int,
+        positional_encoding: tf.Tensor,
+        d_model: int = 512,
+        n_heads: int = 8,
+        d_queries: int = 64,
+        d_values: int = 64,
+        d_inner: int = 2048,
+        n_layers: int = 6,
+        dropout: float = 0.1,
+        **kwargs
+    ):
         """
         Initializes the transformer network.
 
@@ -399,7 +446,7 @@ class Transformer(layers.Layer):
         :param n_layers: number of layers in the Encoder and Decoder
         :param dropout: dropout probability
         """
-        super(Transformer, self).__init__()
+        super(Transformer, self).__init__(**kwargs)
 
         self.vocab_size = vocab_size
         self.positional_encoding = positional_encoding

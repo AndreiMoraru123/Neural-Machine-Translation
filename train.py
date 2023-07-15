@@ -22,10 +22,10 @@ dropout = 0.1  # dropout probability
 positional_encoding = fast_positional_encoding(d_model=d_model, max_length=160)
 
 # Training params
-tokens_in_batch = 200  # batch size in target language tokens
-batches_per_step = 2500 // tokens_in_batch  # perform a training step (update parameters), once every so many batches
+tokens_in_batch = 500  # batch size in target language tokens
+batches_per_step = 5000 // tokens_in_batch  # perform a training step (update parameters), once every so many batches
 print_frequency = 20  # print status once every so many steps
-n_steps = 100000  # number of training steps
+n_steps = 100  # number of training steps
 warmup_steps = 8000  # number of warmup steps where learning rate is increased linearly;
 betas = (0.9, 0.98)  # beta coefficients in the Adam optimizer
 epsilon = 1e-9  # epsilon term in the Adam optimizer
@@ -68,9 +68,14 @@ trainer = Trainer(model=model,
                   optimizer=optimizer,
                   criterion=criterion,
                   train_loader=train_loader,
-                  val_loader=val_loader)
+                  val_loader=val_loader,
+                  log_dir="logs")
 
 if __name__ == "__main__""":
     # Start training
-    trainer.train(start_epoch=1, epochs=n_steps, d_model=d_model, warmup_steps=warmup_steps,
-                  batches_per_step=batches_per_step, print_frequency=print_frequency)
+    trainer.train(start_epoch=0,
+                  epochs=n_steps,
+                  d_model=d_model,
+                  warmup_steps=warmup_steps,
+                  batches_per_step=batches_per_step,
+                  print_frequency=print_frequency)
