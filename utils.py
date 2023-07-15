@@ -1,6 +1,3 @@
-# standard imports
-import math
-
 # third-party imports
 import numpy as np
 import tensorflow as tf  # type: ignore

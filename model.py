@@ -459,5 +459,3 @@ class Transformer(layers.Layer):
                                          encoder_sequence_lengths)
 
         return decoder_sequences
-
-

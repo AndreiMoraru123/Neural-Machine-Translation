@@ -66,4 +66,3 @@ def test_label_smoothed_cross_entropy_loss(loss_input_data, loss_fn):
     # If inputs and targets are completely different, loss should be high
     if tf.reduce_all(tf.equal(inputs, tf.one_hot(3 - targets, depth=depth))):
         assert loss > 1.0, f"Expected high loss, but got {loss}"
-

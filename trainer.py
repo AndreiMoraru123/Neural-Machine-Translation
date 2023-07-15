@@ -42,11 +42,11 @@ class Trainer:
     @staticmethod
     def schedule_learning_rate(step: int, d_model: int, warmup_steps: int) -> float:
         """
-        The LR schedule. This version below is twice the definition in the paper, as used in the official T2T repository.
+        The LR schedule. This version below is twice the definition in the paper, as used in the official T2T repo
 
         :param step: training step number
         :param d_model: size of vectors throughout the transformer
-        :param warmup_steps: number of warmup steps where learning rate is increased linearly; twice the value in the paper
+        :param warmup_steps: number of warmup steps where learning rate is increased linearly
         :return: updated learning rate
         """
         lr = 2. * math.pow(d_model, -0.5) * min(math.pow(step, -0.5), step * math.pow(warmup_steps, -1.5))
@@ -108,7 +108,7 @@ class Trainer:
                                          encoder_sequence_lengths=source_seq_lengths,
                                          decoder_sequence_lengths=target_seq_lengths,
                                          training=True)
-                loss = self.criterion(y_true=target_seqs[:, 1:], # skip <BOS> tag for targets
+                loss = self.criterion(y_true=target_seqs[:, 1:],  # skip <BOS> tag for targets
                                       y_pred=predictions[:, :-1, :])  # skip <EOS> tag for predictions
 
             gradients = tape.gradient(loss, self.model.trainable_variables)

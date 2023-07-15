@@ -268,4 +268,3 @@ def test_transformer_forward_pass(transformer, transformer_input_data):
     # Assert the output shape is as expected
     expected_shape = (decoder_sequences.shape[0], decoder_sequences.shape[1], transformer.vocab_size)
     assert output.shape == expected_shape, f"Expected output shape {expected_shape}, but got {output.shape}"
-

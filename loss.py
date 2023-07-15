@@ -51,5 +51,3 @@ class LabelSmoothedCrossEntropy(losses.Loss):
         loss = tf.reduce_sum(loss) / tf.reduce_sum(mask_flat)
 
         return loss
-
-
