@@ -60,7 +60,22 @@ class MultiHeadAttention(layers.Layer):
         query_sequence_pad_length = tf.shape(query_sequences)[1]
         key_value_sequence_pad_length = tf.shape(key_value_sequences)[1]
 
-        self_attention = tf.reduce_all(tf.equal(key_value_sequences, query_sequences))
+        def tensors_are_equal(tensor1: tf.Tensor, tensor2: tf.Tensor) -> bool:
+            """
+            Tensorflow has no straightforward way of determining whether two tensors have both the same dimensionality
+            and elements, so this helper function does exactly that.
+
+            :param tensor1: Tensor checking for
+            :param tensor2: Tensor checking against
+            :return: True if two tensors have the same size and elements, False otherwise (like torch.equal)
+            """
+            shape_check = tf.reduce_all(tf.shape(tensor1) == tf.shape(tensor2))
+            if shape_check:
+                elements_check = tf.reduce_all(tf.math.equal(tensor1, tensor2))
+                return elements_check
+            return False
+
+        self_attention = tensors_are_equal(key_value_sequences, query_sequences)
 
         query_sequences = self.layer_norm(query_sequences)  # (N, query_sequence_pad_length, d_model)
 

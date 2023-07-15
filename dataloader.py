@@ -93,7 +93,6 @@ class SequenceLoader(object):
         """ Required by iterator."""
         return self
 
-    @tf.function
     def __next__(self):
         """
         Next in iterator.
@@ -110,7 +109,7 @@ class SequenceLoader(object):
         except IndexError:
             raise StopIteration
 
-        source_data = self.bpe_model.encode(source_data, output_type=youtokentome.OutputType.ID, bos=False, eos=False)
+        source_data = self.bpe_model.encode(source_data, output_type=youtokentome.OutputType.ID, bos=False, eos=True)
         target_data = self.bpe_model.encode(target_data, output_type=youtokentome.OutputType.ID, bos=True, eos=True)
 
         source_data = pad_sequences(sequences=source_data, padding='post', value=self.bpe_model.subword_to_id('<PAD>'))

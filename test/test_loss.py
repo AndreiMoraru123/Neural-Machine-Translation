@@ -51,7 +51,7 @@ def test_label_smoothed_cross_entropy_loss(loss_input_data, loss_fn):
     inputs, targets = loss_input_data
 
     # Compute loss
-    loss = loss_fn(inputs, targets)
+    loss = loss_fn(y_true=targets, y_pred=inputs)
 
     # Assert the loss is scalar
     assert tf.rank(loss) == 0, f"Expected scalar loss, but got {tf.rank(loss)}"
