@@ -10,9 +10,10 @@ from colorama import Fore, init  # type: ignore
 import tensorflow as tf  # type: ignore
 from tensorflow.keras.metrics import Mean  # type: ignore
 from tensorflow.keras.optimizers import Optimizer  # type: ignore
+from tensorboard.plugins import projector  # type: ignore
 
 # module imports
-from model import Transformer, MultiHeadAttention
+from model import Transformer
 from dataloader import SequenceLoader
 from loss import LabelSmoothedCrossEntropy
 
@@ -49,6 +50,7 @@ class Trainer:
         self.criterion = criterion
         self.train_loader = train_loader
         self.val_loader = val_loader
+        self.log_dir = log_dir
 
         if os.path.exists(log_dir):
             logging.info(f'{Fore.YELLOW}Flushing Logs')
@@ -69,6 +71,32 @@ class Trainer:
         """
         lr = 2. * math.pow(d_model, -0.5) * min(math.pow(step, -0.5), step * math.pow(warmup_steps, -1.5))
         return lr
+
+    def log_embeddings(self):
+        """Logs the encoder and decoder embeddings to TensorBoard."""
+        logging.info(f'{Fore.YELLOW}Logging embeddings to projector')
+
+        encoder_embeddings = self.model.encoder.embedding.get_weights()[0]
+        decoder_embeddings = self.model.decoder.embedding.get_weights()[0]
+
+        weights_encoder = tf.Variable(encoder_embeddings, name='encoder_embeddings')
+        weights_decoder = tf.Variable(decoder_embeddings, name='decoder_embeddings')
+
+        checkpoint = tf.train.Checkpoint(encoder_embedding=weights_encoder,
+                                         decoder_embedding=weights_decoder)
+        checkpoint.save(os.path.join(self.log_dir), "embedding.ckpt")
+
+        config = projector.ProjectorConfig()
+
+        embedding_encoder = config.embeddings.add()
+        embedding_encoder.tensor_name = "encoder_embedding/.ATTRIBUTES/VARIABLE_VALUE"
+        embedding_encoder.metadata_path = os.path.join(self.log_dir, 'metadata.tsv')
+
+        embedding_decoder = config.embeddings.add()
+        embedding_decoder.tensor_name = "decoder_embedding/.ATTRIBUTES/VARIABLE_VALUE"
+        embedding_decoder.metadata_path = os.path.join(self.log_dir, 'metadata.tsv')
+
+        projector.visualize_embeddings(self.log_dir, config)
 
     def train(
         self,
@@ -189,6 +217,7 @@ class Trainer:
             if (i + 1) % batches_per_step == 0:
                 self.optimizer.learning_rate = self.schedule_learning_rate(step, d_model, warmup_steps)
                 self.optimizer.apply_gradients(zip(gradients, self.model.trainable_variables))
+                self.log_embeddings()
                 step += 1
 
             data_time.update_state(time.time() - start_data_time)
@@ -203,7 +232,7 @@ class Trainer:
                              f'{Fore.CYAN}Step Time {step_time.result():.3f}-----'
                              f'{Fore.GREEN}Loss {loss:.4f}-----'
                              f'{Fore.YELLOW}Average Loss {losses.result():.4f}')
-                with self.summary_writer.as_default():  # log metrics for TensorBoard
+                with self.summary_writer.as_default():
                     tf.summary.scalar('Loss', losses.result(), step=step)
                     tf.summary.scalar('Learning Rate', self.optimizer.learning_rate, step=step)
 

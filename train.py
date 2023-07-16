@@ -22,8 +22,8 @@ dropout = 0.1  # dropout probability
 positional_encoding = fast_positional_encoding(d_model=d_model, max_length=160)
 
 # Training params
-tokens_in_batch = 550  # batch size in target language tokens
-batches_per_step = 5500 // tokens_in_batch  # perform a training step (update parameters), once every so many batches
+tokens_in_batch = 600  # batch size in target language tokens
+batches_per_step = 7500 // tokens_in_batch  # perform a training step (update parameters), once every so many batches
 print_frequency = 50  # print status once every so many steps
 save_every = 30000  # save every this many number of steps
 n_epochs = 3  # number of training epochs

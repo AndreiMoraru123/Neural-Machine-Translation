@@ -5,8 +5,8 @@ from random import shuffle
 from itertools import groupby
 
 # third-party imports
-import tensorflow as tf  # type: ignore
 import youtokentome  # type: ignore
+import tensorflow as tf  # type: ignore
 from tensorflow.keras.preprocessing.sequence import pad_sequences  # type: ignore
 
 
