@@ -10,7 +10,7 @@ from tensorflow.keras.metrics import Mean  # type: ignore
 from tensorflow.keras.optimizers import Optimizer  # type: ignore
 
 # module imports
-from model import Transformer
+from model import Transformer, MultiHeadAttention
 from dataloader import SequenceLoader
 from loss import LabelSmoothedCrossEntropy
 
@@ -87,14 +87,46 @@ class Trainer:
             self.val_loader.create_batches()
             self.validate_one_epoch()
 
-    def save_checkpoint(self, idx: int, prefix: str = ''):
+    def save_checkpoint(self, idx: int, prefix: str = 'checkpoints'):
         """
-        Saves the model in the SavedModel format.
+        Saves the model weights.
+
         :param idx: index for saving
         :param prefix: path prefix
         """
         logging.info(f'{Fore.GREEN}Saving model at step {idx}')
-        self.model.save(prefix + 'transformer_checkpoint_' + str(idx))
+        self.model.save_weights(f"{prefix}/transformer_checkpoint_{idx}/checkpoint", save_format='tf')
+        logging.info(f'{Fore.CYAN}Successfully saved weights')
+
+    def load_checkpoint(self, checkpoint_dir: str):
+        """
+        Loads the model from the latest checkpoint.
+
+        :param checkpoint_dir: path to the directory containing the checkpoints
+        """
+        logging.info(f'{Fore.GREEN}Loading model from {checkpoint_dir}')
+
+        checkpoint_path = tf.train.latest_checkpoint(checkpoint_dir)
+        if not checkpoint_path:
+            raise ValueError(f"No checkpoint found in {checkpoint_dir}")
+
+        logging.info(f'{Fore.CYAN}Latest checkpoint at {checkpoint_path}')
+
+        # Dummy data to build the model
+        dummy_encoder_sequences = tf.zeros((1, 1), dtype=tf.int32)
+        dummy_decoder_sequences = tf.zeros((1, 1), dtype=tf.int32)
+        dummy_encoder_sequence_lengths = tf.zeros((1,), dtype=tf.int32)
+        dummy_decoder_sequence_lengths = tf.zeros((1,), dtype=tf.int32)
+
+        # Calling the model on the dummy data to build it
+        self.model(encoder_sequences=dummy_encoder_sequences,
+                   decoder_sequences=dummy_decoder_sequences,
+                   encoder_sequence_lengths=dummy_encoder_sequence_lengths,
+                   decoder_sequence_lengths=dummy_decoder_sequence_lengths,
+                   training=False)
+
+        self.model.load_weights(checkpoint_path)
+        logging.info(f'{Fore.YELLOW}Successfully loaded weights')
 
     def train_one_epoch(
         self,
