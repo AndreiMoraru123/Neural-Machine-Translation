@@ -1,6 +1,8 @@
 # standard imports
+import os
 import math
 import time
+import shutil
 import logging
 
 # third-party imports
@@ -40,11 +42,19 @@ class Trainer:
         :param train_loader: the sequence loader in train configuration
         :param val_loader: the sequence loader in validation configuration
         """
+        logging.info(f'{Fore.GREEN}Initializing Trainer')
+
         self.model = model
         self.optimizer = optimizer
         self.criterion = criterion
         self.train_loader = train_loader
         self.val_loader = val_loader
+
+        if os.path.exists(log_dir):
+            logging.info(f'{Fore.YELLOW}Flushing Logs')
+            shutil.rmtree(log_dir)
+
+        logging.info(f'{Fore.CYAN}Creating Summary Writer')
         self.summary_writer = tf.summary.create_file_writer(log_dir)
 
     @staticmethod
@@ -82,10 +92,15 @@ class Trainer:
         :param print_frequency: print status once every so many steps
         """
         for epoch in range(start_epoch, epochs):
+            logging.info(f'{Fore.GREEN}Started training at epoch {epoch}')
             self.train_loader.create_batches()
+            logging.info(f'{Fore.YELLOW}Created training batches')
             self.train_one_epoch(epoch, d_model, warmup_steps, batches_per_step, print_frequency, epochs, save_every)
+            logging.info(f'{Fore.CYAN}Finished training epoch {epoch}')
             self.val_loader.create_batches()
+            logging.info(f'{Fore.YELLOW}Created validation batches')
             self.validate_one_epoch()
+            logging.info(f'{Fore.CYAN}Finished validating epoch {epoch}')
 
     def save_checkpoint(self, idx: int, prefix: str = 'checkpoints'):
         """
