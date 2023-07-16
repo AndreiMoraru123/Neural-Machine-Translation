@@ -9,10 +9,11 @@ from tqdm import tqdm  # type: ignore
 
 def tokenize_and_filter_data(data_folder: str, euro_parl: bool = True, common_crawl: bool = True,
                              news_commentary: bool = True, min_length: int = 3, max_length: int = 100,
-                             max_length_ratio: float = 1.5, retain_case: bool = True):
+                             max_length_ratio: float = 1.5, vocab_size: int = 37000, retain_case: bool = True):
     """
     Filters and prepares the training data, trains a Byte-Pair Encoding (BPE) model.
 
+    :param vocab_size: the total size of the vocabulary
     :param data_folder: the folder where the files were downloaded
     :param euro_parl: include the Europarl v7 dataset in the training data?
     :param common_crawl: include the Common Crawl dataset in the training data?
@@ -59,8 +60,9 @@ def tokenize_and_filter_data(data_folder: str, euro_parl: bool = True, common_cr
 
     # Perform BPE
     print("\nLearning BPE...")
-    youtokentome.BPE.train(data=os.path.join(data_folder, "train.ende"), vocab_size=37000,
-                           model=os.path.join(data_folder, "bpe.model"))
+    youtokentome.BPE.train(data=os.path.join(data_folder, "train.ende"),
+                           model=os.path.join(data_folder, "bpe.model"),
+                           vocab_size=vocab_size)
 
     # Load BPE model
     print("\nLoading BPE model...")
@@ -87,8 +89,7 @@ def tokenize_and_filter_data(data_folder: str, euro_parl: bool = True, common_cr
             pairs.append((en, de))
         else:
             continue
-    print("\nNote: %.2f per cent of en-de pairs were filtered out based on sub-word sequence length limits." % (100. * (
-            len(english) - len(pairs)) / len(english)))
+    print("\nNote: %.2f pct. of en-de pairs were filtered out." % (100. * (len(english) - len(pairs)) / len(english)))
 
     # Rewrite files
     english, german = zip(*pairs)
@@ -106,5 +107,12 @@ def tokenize_and_filter_data(data_folder: str, euro_parl: bool = True, common_cr
 
 
 if __name__ == "__main__":
-    tokenize_and_filter_data(data_folder="data", euro_parl=True, common_crawl=True, news_commentary=True,
-                             min_length=3, max_length=150, max_length_ratio=2.0, retain_case=True)
+    tokenize_and_filter_data(data_folder="data",
+                             euro_parl=True,
+                             common_crawl=True,
+                             news_commentary=True,
+                             min_length=3,
+                             max_length=150,
+                             max_length_ratio=2.0,
+                             retain_case=True,
+                             vocab_size=37000)

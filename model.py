@@ -2,6 +2,7 @@
 import einops
 import tensorflow as tf  # type: ignore
 from tensorflow.keras import layers  # type: ignore
+from tensorflow.keras import Model  # type: ignore
 
 
 class MultiHeadAttention(layers.Layer):
@@ -417,7 +418,7 @@ class Decoder(layers.Layer):
         return decoder_sequences
 
 
-class Transformer(layers.Layer):
+class Transformer(Model):
     """The Transformer network."""
 
     def __init__(

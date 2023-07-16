@@ -23,9 +23,10 @@ positional_encoding = fast_positional_encoding(d_model=d_model, max_length=160)
 
 # Training params
 tokens_in_batch = 500  # batch size in target language tokens
-batches_per_step = 5000 // tokens_in_batch  # perform a training step (update parameters), once every so many batches
+batches_per_step = 2500 // tokens_in_batch  # perform a training step (update parameters), once every so many batches
 print_frequency = 20  # print status once every so many steps
-n_steps = 100  # number of training steps
+save_every = 10000  # save every this many number of steps
+n_epochs = 3  # number of training epochs
 warmup_steps = 8000  # number of warmup steps where learning rate is increased linearly;
 betas = (0.9, 0.98)  # beta coefficients in the Adam optimizer
 epsilon = 1e-9  # epsilon term in the Adam optimizer
@@ -74,8 +75,9 @@ trainer = Trainer(model=model,
 if __name__ == "__main__""":
     # Start training
     trainer.train(start_epoch=0,
-                  epochs=n_steps,
+                  epochs=n_epochs,
                   d_model=d_model,
                   warmup_steps=warmup_steps,
                   batches_per_step=batches_per_step,
-                  print_frequency=print_frequency)
+                  print_frequency=print_frequency,
+                  save_every=save_every)

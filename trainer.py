@@ -20,7 +20,7 @@ logging.basicConfig(level=logging.INFO)
 
 
 class Trainer:
-    """ Utility class to train a model."""
+    """ Utility class to train a language model."""
 
     def __init__(
         self,
@@ -67,11 +67,13 @@ class Trainer:
         d_model: int,
         warmup_steps: int,
         batches_per_step: int,
-        print_frequency: int
+        print_frequency: int,
+        save_every: int,
     ) -> None:
         """
         Trains the model for the number of specified epochs.
 
+        :param save_every: save every this many number of steps
         :param start_epoch: starting epoch
         :param epochs: total number of training epochs
         :param d_model: size of the vectors throughout the Transformer
@@ -81,14 +83,18 @@ class Trainer:
         """
         for epoch in range(start_epoch, epochs):
             self.train_loader.create_batches()
-            self.train_one_epoch(epoch, d_model, warmup_steps, batches_per_step, print_frequency, epochs)
+            self.train_one_epoch(epoch, d_model, warmup_steps, batches_per_step, print_frequency, epochs, save_every)
             self.val_loader.create_batches()
             self.validate_one_epoch()
-            self.save_checkpoint()
 
-    def save_checkpoint(self, prefix=''):
-        """Saves a tensorflow checkpoint for the model."""
-        self.model.save_weights(prefix + 'transformer_checkpoint')
+    def save_checkpoint(self, idx: int, prefix: str = ''):
+        """
+        Saves the model in the SavedModel format.
+        :param idx: index for saving
+        :param prefix: path prefix
+        """
+        logging.info(f'{Fore.GREEN}Saving model at step {idx}')
+        self.model.save(prefix + 'transformer_checkpoint_' + str(idx))
 
     def train_one_epoch(
         self,
@@ -98,10 +104,12 @@ class Trainer:
         batches_per_step: int,
         print_frequency: int,
         epochs: int,
+        save_every: int,
     ) -> None:
         """
         Trains the model for one epoch.
 
+        :param save_every: save every this many number of steps
         :param epochs: total number of training epochs
         :param epoch: the current training epoch
         :param d_model: size of the vectors throughout the Transformer
@@ -146,11 +154,14 @@ class Trainer:
                              f'{Fore.WHITE}Step {step}-----'
                              f'{Fore.MAGENTA}Data Time {data_time.result():.3f}-----'
                              f'{Fore.CYAN}Step Time {step_time.result():.3f}-----'
-                             f'{Fore.GREEN}Loss {loss:.4f} '
+                             f'{Fore.GREEN}Loss {loss:.4f}-----'
                              f'{Fore.YELLOW}Average Loss {losses.result():.4f}')
                 with self.summary_writer.as_default():  # log metrics for TensorBoard
                     tf.summary.scalar('Loss', losses.result(), step=step)
                     tf.summary.scalar('Learning Rate', self.optimizer.learning_rate, step=step)
+
+            if (i + 1) % save_every == 0:
+                self.save_checkpoint(i + 1)
 
             start_data_time = time.time()
             start_step_time = time.time()
