@@ -8,8 +8,9 @@ from dataloader import SequenceLoader
 from loss import LabelSmoothedCrossEntropy
 from utils import fast_positional_encoding
 
-# Data Path
+# Paths
 data_folder = "data"
+log_dir = "logs"
 
 # Model params
 d_model = 512  # size of vectors throughout the transformer model
@@ -33,13 +34,13 @@ epsilon = 1e-9  # epsilon term in the Adam optimizer
 label_smoothing = 0.1  # label smoothing coefficient in the Cross Entropy loss
 path_to_checkpoint = "checkpoints/transformer_checkpoint_60000"
 
-train_loader = SequenceLoader(data_folder="data",
+train_loader = SequenceLoader(data_folder=data_folder,
                               source_suffix="en",
                               target_suffix="de",
                               split="train",
                               tokens_in_batch=tokens_in_batch)
 
-val_loader = SequenceLoader(data_folder="data",
+val_loader = SequenceLoader(data_folder=data_folder,
                             source_suffix="en",
                             target_suffix="de",
                             split="val",
@@ -62,7 +63,7 @@ trainer = Trainer(model=model,
                   criterion=criterion,
                   train_loader=train_loader,
                   val_loader=val_loader,
-                  log_dir="logs")
+                  log_dir=log_dir)
 
 if __name__ == "__main__""":
 
