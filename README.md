@@ -7,11 +7,14 @@ After training for a while, some interesting patterns arise. This project integr
 
 In the shared vocabulary between the encoder (english) and decoder (german) we can see some cosine similarities:
 
-### 1. *Entschließung* (resolution) gets associated with *completed* 
+#### 1. *Entschließung* (resolution) gets associated with *completed* 
+
 ![Resolution60k](https://github.com/AndreiMoraru123/machine-translation/assets/81184255/2839ae4e-1cfd-4ca0-a160-fd1fd5abf948)
 
-### 2. *gessammelt* (collected) maps to *decision* and *Bestimmung* (determination) as well as *verstärkt* (strenghtened)
+#### 2. *gessammelt* (collected) maps to *decision* and *Bestimmung* (determination) as well as *verstärkt* (strenghtened)
+
 ![strengthened_collected_consistent60k](https://github.com/AndreiMoraru123/machine-translation/assets/81184255/4c0743d5-3acd-4e95-a208-8f66e04d80ff)
 
-### 3. *Change* also gets associated with *neuer* (new)
+#### 3. *Change* also gets associated with *neuer* (new)
+
 ![change_neuer_60k](https://github.com/AndreiMoraru123/machine-translation/assets/81184255/7e4320a6-e543-4fc1-bccd-ad08683b38ae)
