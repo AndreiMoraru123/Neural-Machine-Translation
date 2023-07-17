@@ -3,7 +3,7 @@
 ![TensorFlow](https://img.shields.io/badge/TensorFlow-%23FF6F00.svg?style=for-the-badge&logo=TensorFlow&logoColor=white)  ![Keras](https://img.shields.io/badge/Keras-%23D00000.svg?style=for-the-badge&logo=Keras&logoColor=white)  ![nVIDIA](https://img.shields.io/badge/nVIDIA-%2376B900.svg?style=for-the-badge&logo=nVIDIA&logoColor=white)
 
 
-After training for a while (~60K steps), some interesting patterns arise. This project integrates them into TensorBoard's [Embedding Projector](https://www.tensorflow.org/tensorboard/tensorboard_projector_plugin):
+After training for a while, some interesting patterns arise. This project integrates them into TensorBoard's [Embedding Projector](https://www.tensorflow.org/tensorboard/tensorboard_projector_plugin):
 
 In the shared vocabulary between the encoder (english) and decoder (german) we can see some cosine similarities:
 
