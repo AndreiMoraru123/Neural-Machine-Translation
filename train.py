@@ -31,7 +31,7 @@ warmup_steps = 8000  # number of warmup steps where learning rate is increased l
 betas = (0.9, 0.98)  # beta coefficients in the Adam optimizer
 epsilon = 1e-9  # epsilon term in the Adam optimizer
 label_smoothing = 0.1  # label smoothing coefficient in the Cross Entropy loss
-path_to_checkpoint = ""
+path_to_checkpoint = "checkpoints/transformer_checkpoint_60000"
 
 train_loader = SequenceLoader(data_folder="data",
                               source_suffix="en",

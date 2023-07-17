@@ -2,6 +2,7 @@
 import os
 import codecs
 from random import shuffle
+from typing import List, Tuple
 from itertools import groupby
 
 # third-party imports
@@ -28,7 +29,7 @@ class SequenceLoader(object):
 
     def __init__(self, data_folder, source_suffix, target_suffix, split, tokens_in_batch):
         """
-        Sequence constructor.
+        Sequence constructor that creates batches of sequences for a given data folder.
 
         :param data_folder: folder containing the source and target language data files
         :param source_suffix: the filename suffix for the source language
@@ -93,7 +94,17 @@ class SequenceLoader(object):
         """ Required by iterator."""
         return self
 
-    def __next__(self):
+    def get_vocabulary(self) -> List[str]:
+        """
+        Returns a list of all unique tokens in the vocabulary.
+
+        :returns: a list of strings
+        """
+        special_tokens = ['<BOS>', '<EOS>', '<PAD>']
+        vocab = [self.bpe_model.id_to_subword(i) for i in range(self.bpe_model.vocab_size())]
+        return [token for token in vocab if token not in special_tokens]
+
+    def __next__(self) -> Tuple[tf.Tensor, tf.Tensor, tf.Tensor, tf.Tensor]:
         """
         Next in iterator.
 

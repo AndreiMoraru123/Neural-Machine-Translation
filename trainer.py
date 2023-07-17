@@ -74,29 +74,41 @@ class Trainer:
 
     def log_embeddings(self):
         """Logs the encoder and decoder embeddings to TensorBoard."""
-        logging.info(f'{Fore.YELLOW}Logging embeddings to projector')
+        logging.info(f'{Fore.MAGENTA}Logging embeddings to projector')
 
+        # Get embeddings
         encoder_embeddings = self.model.encoder.embedding.get_weights()[0]
         decoder_embeddings = self.model.decoder.embedding.get_weights()[0]
 
         weights_encoder = tf.Variable(encoder_embeddings, name='encoder_embeddings')
         weights_decoder = tf.Variable(decoder_embeddings, name='decoder_embeddings')
 
+        # Get training checkpoint
         checkpoint = tf.train.Checkpoint(encoder_embedding=weights_encoder,
                                          decoder_embedding=weights_decoder)
-        checkpoint.save(os.path.join(self.log_dir), "embedding.ckpt")
+        checkpoint.save(os.path.join(self.log_dir, "embedding.ckpt"))
 
+        # Get the vocabulary from the data loader
+        vocab = self.train_loader.get_vocabulary()
+
+        # Write vocabulary to file
+        with open(os.path.join(self.log_dir, 'metadata.tsv'), 'w', encoding='utf-8') as f:
+            for word in vocab:
+                f.write("{}\n".format(word))
+
+        # Configure and write to projector
         config = projector.ProjectorConfig()
 
         embedding_encoder = config.embeddings.add()
         embedding_encoder.tensor_name = "encoder_embedding/.ATTRIBUTES/VARIABLE_VALUE"
-        embedding_encoder.metadata_path = os.path.join(self.log_dir, 'metadata.tsv')
+        embedding_encoder.metadata_path = 'metadata.tsv'
 
         embedding_decoder = config.embeddings.add()
         embedding_decoder.tensor_name = "decoder_embedding/.ATTRIBUTES/VARIABLE_VALUE"
-        embedding_decoder.metadata_path = os.path.join(self.log_dir, 'metadata.tsv')
+        embedding_decoder.metadata_path = 'metadata.tsv'
 
         projector.visualize_embeddings(self.log_dir, config)
+        logging.info(f'{Fore.WHITE} Embeddings can be visualized on projector')
 
     def train(
         self,
@@ -122,11 +134,11 @@ class Trainer:
         for epoch in range(start_epoch, epochs):
             logging.info(f'{Fore.GREEN}Started training at epoch {epoch}')
             self.train_loader.create_batches()
-            logging.info(f'{Fore.YELLOW}Created training batches')
+            logging.info(f'{Fore.BLUE}Created training batches')
             self.train_one_epoch(epoch, d_model, warmup_steps, batches_per_step, print_frequency, epochs, save_every)
             logging.info(f'{Fore.CYAN}Finished training epoch {epoch}')
             self.val_loader.create_batches()
-            logging.info(f'{Fore.YELLOW}Created validation batches')
+            logging.info(f'{Fore.BLUE}Created validation batches')
             self.validate_one_epoch()
             logging.info(f'{Fore.CYAN}Finished validating epoch {epoch}')
 
@@ -217,7 +229,6 @@ class Trainer:
             if (i + 1) % batches_per_step == 0:
                 self.optimizer.learning_rate = self.schedule_learning_rate(step, d_model, warmup_steps)
                 self.optimizer.apply_gradients(zip(gradients, self.model.trainable_variables))
-                self.log_embeddings()
                 step += 1
 
             data_time.update_state(time.time() - start_data_time)
@@ -238,6 +249,7 @@ class Trainer:
 
             if (i + 1) % save_every == 0:
                 self.save_checkpoint(i + 1)
+                self.log_embeddings()
 
             start_data_time = time.time()
             start_step_time = time.time()
