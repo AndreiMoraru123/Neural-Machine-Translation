@@ -24,7 +24,7 @@ class Evaluator:
 
     def __init__(self, model: Transformer, test_loader: SequenceLoader, bpe_model_path: str):
         """
-        Initializes the Evaluator
+        Initializes the Evaluator.
 
         :param model: the Transformer model
         :param test_loader: the sequence loader in test configuration

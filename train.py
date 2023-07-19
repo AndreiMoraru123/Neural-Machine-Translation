@@ -6,7 +6,7 @@ from trainer import Trainer
 from model import Transformer
 from dataloader import SequenceLoader
 from loss import LabelSmoothedCrossEntropy
-from utils import fast_positional_encoding
+from utils import WarmupLearningRateSchedule, fast_positional_encoding
 
 # Paths
 data_folder = "data"
@@ -27,12 +27,12 @@ tokens_in_batch = 550  # batch size in target language tokens
 batches_per_step = 6600 // tokens_in_batch  # perform a training step (update parameters) once every so many batches
 print_frequency = 50  # print status once every so many steps
 save_every = 20000  # save every this many number of steps
-n_epochs = 10000  # number of training epochs
+n_epochs = 3  # number of training epochs
 warmup_steps = 16000  # number of warmup steps where learning rate is increased linearly
 betas = (0.9, 0.98)  # beta coefficients in the Adam optimizer
 epsilon = 1e-9  # epsilon term in the Adam optimizer
 label_smoothing = 0.1  # label smoothing coefficient in the Cross Entropy loss
-path_to_checkpoint = "checkpoints/transformer_checkpoint_60000"
+path_to_checkpoint = ""
 
 train_loader = SequenceLoader(data_folder=data_folder,
                               source_suffix="en",
@@ -51,7 +51,10 @@ model = Transformer(n_heads=n_heads, d_model=d_model, d_queries=d_queries, d_val
                     vocab_size=train_loader.bpe_model.vocab_size(),
                     positional_encoding=positional_encoding)
 
-optimizer = tf.keras.optimizers.Adam(learning_rate=1e-4,
+
+lr_schedule = WarmupLearningRateSchedule(d_model=d_model, warmup_steps=2000)
+
+optimizer = tf.keras.optimizers.Adam(learning_rate=lr_schedule,
                                      beta_1=betas[0],
                                      beta_2=betas[1],
                                      epsilon=epsilon)
@@ -70,10 +73,5 @@ if __name__ == "__main__""":
     if path_to_checkpoint:
         trainer.load_checkpoint(checkpoint_dir=path_to_checkpoint)
 
-    trainer.train(start_epoch=0,
-                  epochs=n_epochs,
-                  d_model=d_model,
-                  warmup_steps=warmup_steps,
-                  batches_per_step=batches_per_step,
-                  print_frequency=print_frequency,
-                  save_every=save_every)
+    trainer.train(start_epoch=0, epochs=n_epochs, batches_per_step=batches_per_step,
+                  print_frequency=print_frequency, save_every=save_every)

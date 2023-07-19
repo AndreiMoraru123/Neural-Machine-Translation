@@ -2,9 +2,6 @@
 import os
 from pprint import PrettyPrinter
 
-# third-party imports
-import tensorflow as tf  # type: ignore
-
 # module imports
 from model import Transformer
 from evaluator import Evaluator
@@ -24,10 +21,9 @@ n_layers = 6  # number of layers in the Encoder and Decoder
 dropout = 0.1  # dropout probability
 tokens_in_batch = 600  # batch size in target language tokens
 positional_encoding = fast_positional_encoding(d_model=d_model, max_length=160)
-path_to_checkpoint = "checkpoints/transformer_checkpoint_1_300"
+path_to_checkpoint = "checkpoints/transformer_checkpoint_60000"
 get_blue_score = True
 
-# Only need a Sequence Loader for its vocabulary size (either in train or val mode)
 test_loader = SequenceLoader(data_folder=data_folder,
                              source_suffix="en",
                              target_suffix="de",
@@ -54,6 +50,6 @@ if __name__ == "__main__":
     pp.pprint(best_hypothesis)
     pp.pprint(all_hypotheses)
 
-    # Evaluate the model
+    # Evaluate the model on the initialized test loader
     if get_blue_score:
         evaluator.evaluate()

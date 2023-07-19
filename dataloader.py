@@ -1,5 +1,4 @@
 # standard imports
-import re
 import os
 import codecs
 from random import shuffle
@@ -14,7 +13,7 @@ from tensorflow.keras.preprocessing.sequence import pad_sequences  # type: ignor
 
 class SequenceLoader(object):
     """
-    An iterator for loading batches of data into the transformer model.
+    An iterator for loading batches of data into the Transformer.
 
     For training:
 

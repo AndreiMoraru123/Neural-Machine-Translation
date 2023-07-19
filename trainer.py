@@ -59,21 +59,9 @@ class Trainer:
         logging.info(f'{Fore.CYAN}Creating Summary Writer')
         self.summary_writer = tf.summary.create_file_writer(log_dir)
 
-    @staticmethod
-    def schedule_learning_rate(step: int, d_model: int, warmup_steps: int) -> float:
-        """
-        The LR schedule. This version below is twice the definition in the paper, as used in the official T2T repo.
-
-        :param step: training step number
-        :param d_model: size of vectors throughout the transformer
-        :param warmup_steps: number of warmup steps where learning rate is increased linearly
-        :return: updated learning rate
-        """
-        lr = 2. * math.pow(d_model, -0.5) * min(math.pow(step, -0.5), step * math.pow(warmup_steps, -1.5))
-        return lr
-
     def log_embeddings(self):
         """Logs the encoder and decoder embeddings to TensorBoard."""
+
         logging.info(f'{Fore.MAGENTA}Logging embeddings to projector')
 
         # Get embeddings
@@ -114,8 +102,6 @@ class Trainer:
         self,
         start_epoch: int,
         epochs: int,
-        d_model: int,
-        warmup_steps: int,
         batches_per_step: int,
         print_frequency: int,
         save_every: int,
@@ -126,8 +112,6 @@ class Trainer:
         :param save_every: save every this many number of steps
         :param start_epoch: starting epoch
         :param epochs: total number of training epochs
-        :param d_model: size of the vectors throughout the Transformer
-        :param warmup_steps: number of warmup steps where learning rate is increased linearly
         :param batches_per_step: perform a training step (update parameters), once every so many batches
         :param print_frequency: print status once every so many steps
         """
@@ -135,7 +119,7 @@ class Trainer:
             logging.info(f'{Fore.GREEN}Started training at epoch {epoch + 1}')
             self.train_loader.create_batches()
             logging.info(f'{Fore.BLUE}Created training batches')
-            self.train_one_epoch(epoch, d_model, warmup_steps, batches_per_step, print_frequency, epochs, save_every)
+            self.train_one_epoch(epoch, batches_per_step, print_frequency, epochs, save_every)
             logging.info(f'{Fore.MAGENTA}Finished training epoch {epoch + 1}')
             self.val_loader.create_batches()
             logging.info(f'{Fore.BLUE}Created validation batches')
@@ -186,8 +170,6 @@ class Trainer:
     def train_one_epoch(
         self,
         epoch: int,
-        d_model: int,
-        warmup_steps: int,
         batches_per_step: int,
         print_frequency: int,
         epochs: int,
@@ -199,8 +181,6 @@ class Trainer:
         :param save_every: save every this many number of steps
         :param epochs: total number of training epochs
         :param epoch: the current training epoch
-        :param d_model: size of the vectors throughout the Transformer
-        :param warmup_steps: number of warmup steps where learning rate is increased linearly
         :param batches_per_step: perform a training step (update parameters), once every so many batches
         :param print_frequency: print status once every so many steps
         """
@@ -227,7 +207,6 @@ class Trainer:
             gradients = tape.gradient(loss, self.model.trainable_variables)
 
             if (i + 1) % batches_per_step == 0:
-                self.optimizer.learning_rate = self.schedule_learning_rate(step, d_model, warmup_steps)
                 self.optimizer.apply_gradients(zip(gradients, self.model.trainable_variables))
                 step += 1
 
@@ -245,7 +224,7 @@ class Trainer:
                              f'{Fore.YELLOW}Average Loss {losses.result():.4f}')
                 with self.summary_writer.as_default():
                     tf.summary.scalar('Loss', losses.result(), step=step)
-                    tf.summary.scalar('Learning Rate', self.optimizer.learning_rate, step=step)
+                    tf.summary.scalar('Learning Rate', self.optimizer.learning_rate(step), step=step)
 
             if (i + 1) % save_every == 0:
                 self.save_checkpoint(i + 1, epoch + 1)
