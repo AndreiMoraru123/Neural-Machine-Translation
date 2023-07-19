@@ -23,12 +23,12 @@ dropout = 0.1  # dropout probability
 positional_encoding = fast_positional_encoding(d_model=d_model, max_length=160)
 
 # Training params
-tokens_in_batch = 600  # batch size in target language tokens
-batches_per_step = 7500 // tokens_in_batch  # perform a training step (update parameters), once every so many batches
+tokens_in_batch = 550  # batch size in target language tokens
+batches_per_step = 6600 // tokens_in_batch  # perform a training step (update parameters) once every so many batches
 print_frequency = 50  # print status once every so many steps
-save_every = 30000  # save every this many number of steps
-n_epochs = 3  # number of training epochs
-warmup_steps = 8000  # number of warmup steps where learning rate is increased linearly;
+save_every = 20000  # save every this many number of steps
+n_epochs = 10000  # number of training epochs
+warmup_steps = 16000  # number of warmup steps where learning rate is increased linearly
 betas = (0.9, 0.98)  # beta coefficients in the Adam optimizer
 epsilon = 1e-9  # epsilon term in the Adam optimizer
 label_smoothing = 0.1  # label smoothing coefficient in the Cross Entropy loss
@@ -51,7 +51,7 @@ model = Transformer(n_heads=n_heads, d_model=d_model, d_queries=d_queries, d_val
                     vocab_size=train_loader.bpe_model.vocab_size(),
                     positional_encoding=positional_encoding)
 
-optimizer = tf.keras.optimizers.Adam(learning_rate=1.0,
+optimizer = tf.keras.optimizers.Adam(learning_rate=1e-4,
                                      beta_1=betas[0],
                                      beta_2=betas[1],
                                      epsilon=epsilon)

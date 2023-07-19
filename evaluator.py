@@ -1,27 +1,38 @@
 # standard imports
 import math
+import logging
 from typing import Union, Tuple, List, Dict
 
 # third-party imports
+import sacrebleu
 import youtokentome  # type: ignore
 import tensorflow as tf  # type: ignore
+from tqdm import tqdm  # type: ignore
+from colorama import Fore, init  # type: ignore
 
 # module imports
 from model import Transformer
+from dataloader import SequenceLoader
+
+# logging house-keeping
+init(autoreset=True)
+logging.basicConfig(level=logging.INFO)
 
 
 class Evaluator:
     """Utility class to evaluate a language model for the task of translation."""
 
-    def __init__(self, model: Transformer, bpe_model_path: str):
+    def __init__(self, model: Transformer, test_loader: SequenceLoader, bpe_model_path: str):
         """
         Initializes the Evaluator
 
         :param model: the Transformer model
+        :param test_loader: the sequence loader in test configuration
         :param bpe_model_path: the path to the Byte-Pair Encoding model
         """
 
         self.model = model
+        self.test_loader = test_loader
         self.bpe_model = youtokentome.BPE(model=bpe_model_path)
 
     def load_checkpoint(self, checkpoint_dir: str):
@@ -50,11 +61,47 @@ class Evaluator:
 
         self.model.load_weights(checkpoint_path)
 
+    def evaluate(self, length_norm_coefficient: float = 0.6, k: int = 5):
+        """
+        Evaluates the model using BLUE score.
+
+        :param length_norm_coefficient: coefficient for normalizing decoded sequences' scores by their lengths
+        :param k: beam size, when k = 1 the translation is equivalent to performing greedy decoding
+        :return:
+        """
+        hypotheses = []
+        references = []
+        COLORS = [Fore.GREEN, Fore.YELLOW, Fore.CYAN, Fore.MAGENTA]
+        for _, (source_seqs, target_seqs, source_seq_lengths, target_seq_lengths) in enumerate(
+            tqdm(self.test_loader, total=self.test_loader.n_batches)
+        ):
+            hypotheses.append(self.translate(source_sequence=source_seqs,
+                                             length_norm_coefficient=length_norm_coefficient,
+                                             k=k)[0])
+            references.extend(self.test_loader.bpe_model.decode(target_seqs.numpy().tolist(), ignore_ids=[0, 2, 3]))
+
+        for i, (print_text, sacrebleu_text) in enumerate(zip([
+            "13a tokenization, cased",
+            "13a tokenization, caseless",
+            "International tokenization, cased",
+            "International tokenization, caseless"
+        ], [
+            sacrebleu.corpus_bleu(hypotheses, [references]),
+            sacrebleu.corpus_bleu(hypotheses, [references], lowercase=True),
+            sacrebleu.corpus_bleu(hypotheses, [references], tokenize='intl'),
+            sacrebleu.corpus_bleu(hypotheses, [references], tokenize='intl', lowercase=True)
+        ])):
+            colored_log_message = f'{COLORS[i]}{print_text}'
+            colored_sacrebleu = f'{COLORS[i]}{sacrebleu_text}'
+
+            logging.info(colored_log_message)
+            logging.info(colored_sacrebleu)
+
     def translate(
         self,
         source_sequence: Union[tf.Tensor, str],
         length_norm_coefficient: float = 0.6,
-        k: int = 10
+        k: int = 5
     ) -> Tuple[str, List[Dict[str, Union[str, float]]]]:
         """
         Translates a source language sequence into the target language, with beam search decoding.
@@ -102,7 +149,7 @@ class Evaluator:
             scores = decoder_sequences[:, -1, :]  # (s, vocab_size)
             scores = tf.nn.log_softmax(scores, axis=-1)  # (s, vocab_size)
 
-            scores = tf.expand_dims(hypotheses_scores, 1) + scores   # (s, vocab_size)
+            scores = tf.expand_dims(hypotheses_scores, 1) + scores  # (s, vocab_size)
 
             top_k_hypotheses_scores, unrolled_indices = tf.math.top_k(tf.reshape(scores, [-1]), k)
 
@@ -127,7 +174,7 @@ class Evaluator:
             hypotheses_scores = tf.boolean_mask(top_k_hypotheses_scores, ~complete)  # (s)
             hypotheses_lengths = tf.fill([tf.shape(hypotheses)[0]], tf.shape(hypotheses)[1])  # (s)
 
-            if step > 10:
+            if step > 100:
                 break
             step += 1
 

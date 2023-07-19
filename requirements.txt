@@ -5,3 +5,7 @@ youtokentome~=1.0.6
 wget~=3.2
 tqdm~=4.65.0
 colorama~=0.4.6
+pytest~=7.4.0
+numpy~=1.25.1
+tensorboard~=2.10.1
+sacrebleu~=2.3.1

@@ -132,25 +132,25 @@ class Trainer:
         :param print_frequency: print status once every so many steps
         """
         for epoch in range(start_epoch, epochs):
-            logging.info(f'{Fore.GREEN}Started training at epoch {epoch}')
+            logging.info(f'{Fore.GREEN}Started training at epoch {epoch + 1}')
             self.train_loader.create_batches()
             logging.info(f'{Fore.BLUE}Created training batches')
             self.train_one_epoch(epoch, d_model, warmup_steps, batches_per_step, print_frequency, epochs, save_every)
-            logging.info(f'{Fore.CYAN}Finished training epoch {epoch}')
+            logging.info(f'{Fore.MAGENTA}Finished training epoch {epoch + 1}')
             self.val_loader.create_batches()
             logging.info(f'{Fore.BLUE}Created validation batches')
             self.validate_one_epoch()
-            logging.info(f'{Fore.CYAN}Finished validating epoch {epoch}')
 
-    def save_checkpoint(self, idx: int, prefix: str = 'checkpoints'):
+    def save_checkpoint(self, idx: int, epoch: int, prefix: str = 'checkpoints'):
         """
         Saves the model weights.
 
+        :param epoch: the current epoch
         :param idx: index for saving
         :param prefix: path prefix
         """
-        logging.info(f'{Fore.GREEN}Saving model at step {idx}')
-        self.model.save_weights(f"{prefix}/transformer_checkpoint_{idx}/checkpoint", save_format='tf')
+        logging.info(f'{Fore.GREEN}Saving model at step {idx} of epoch {epoch}')
+        self.model.save_weights(f"{prefix}/transformer_checkpoint_{idx}_{epoch}/checkpoint", save_format='tf')
         logging.info(f'{Fore.CYAN}Successfully saved weights')
 
     def load_checkpoint(self, checkpoint_dir: str):
@@ -248,7 +248,7 @@ class Trainer:
                     tf.summary.scalar('Learning Rate', self.optimizer.learning_rate, step=step)
 
             if (i + 1) % save_every == 0:
-                self.save_checkpoint(i + 1)
+                self.save_checkpoint(i + 1, epoch + 1)
                 self.log_embeddings()
 
             start_data_time = time.time()
@@ -273,5 +273,5 @@ class Trainer:
                                   y_pred=predictions[:, :-1, :])  # skip <EOS> tag for predictions
             losses.update_state(loss)
 
-        logging.info(f'{Fore.GREEN}Average Validation Loss {losses.result():.4f}')
+        logging.info(f'{Fore.YELLOW}Average Validation Loss {losses.result():.4f}')
         losses.reset_states()

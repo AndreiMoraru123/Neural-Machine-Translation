@@ -1,4 +1,5 @@
 # standard imports
+import re
 import os
 import codecs
 from random import shuffle
@@ -100,9 +101,7 @@ class SequenceLoader(object):
 
         :returns: a list of strings
         """
-        special_tokens = ['<BOS>', '<EOS>', '<PAD>']
-        vocab = [self.bpe_model.id_to_subword(i) for i in range(self.bpe_model.vocab_size())]
-        return [token for token in vocab if token not in special_tokens]
+        return self.bpe_model.vocab()
 
     def __next__(self) -> Tuple[tf.Tensor, tf.Tensor, tf.Tensor, tf.Tensor]:
         """
