@@ -1,6 +1,5 @@
 # standard imports
 import os
-import math
 import time
 import shutil
 import logging

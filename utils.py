@@ -6,6 +6,7 @@ from tensorflow.keras.optimizers import schedules  # type: ignore
 
 class WarmupLearningRateSchedule(schedules.LearningRateSchedule):
     """Custom learning rate scheduling class that mimics the one in Attention Is All You Need."""
+
     def __init__(self, d_model: int, warmup_steps: int = 4000):
         """
         Initializes the learning rate scheduler.
