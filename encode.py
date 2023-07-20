@@ -108,5 +108,5 @@ def tokenize_and_filter_data(data_folder: str, euro_parl: bool = True, common_cr
 
 if __name__ == "__main__":
     tokenize_and_filter_data(data_folder="data", euro_parl=True, common_crawl=False, news_commentary=False,
-                             min_length=3, max_length=50, max_length_ratio=2.0,
+                             min_length=3, max_length=100, max_length_ratio=2.0,
                              retain_case=True, vocab_size=30000)

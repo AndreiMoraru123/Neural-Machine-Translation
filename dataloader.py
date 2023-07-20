@@ -27,7 +27,7 @@ class SequenceLoader(object):
         Each batch contains a single source-target pair, in the same order as in the files from which they were read.
     """
 
-    def __init__(self, data_folder, source_suffix, target_suffix, split, tokens_in_batch):
+    def __init__(self, data_folder: str, source_suffix: str, target_suffix: str, split: str, tokens_in_batch: int):
         """
         Sequence constructor that creates batches of sequences for a given data folder.
 
@@ -112,7 +112,8 @@ class SequenceLoader(object):
             true source language lengths, a tensor of size (N)
             true target language lengths, a tensor of size (N)
         """
-        self.current_batch += 1
+        self.current_batch += 1  # type: ignore
+
         try:
             source_data, target_data, source_lengths, target_lengths = zip(*self.all_batches[self.current_batch])
         except IndexError:
