@@ -8,6 +8,7 @@ import tensorflow as tf  # type: ignore
 
 @pytest.fixture(params=['CPU', 'GPU'], autouse=True)
 def device(request):
+    """Selects a runtime device for Tensorflow, so when parametrized with both CPU & GPU, tests will be run for both."""
     device_type = request.param
     if device_type == 'CPU':
         os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
