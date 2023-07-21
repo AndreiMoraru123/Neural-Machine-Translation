@@ -104,16 +104,22 @@ class Trainer:
         batches_per_step: int,
         print_frequency: int,
         save_every: int,
+        path_to_checkpoint: str
     ) -> None:
         """
         Trains the model for the number of specified epochs.
 
+        :param path_to_checkpoint: path to the directory containing the checkpoints
         :param save_every: save every this many number of steps
         :param start_epoch: starting epoch
         :param epochs: total number of training epochs
         :param batches_per_step: perform a training step (update parameters), once every so many batches
         :param print_frequency: print status once every so many steps
         """
+
+        if path_to_checkpoint:
+            self.load_checkpoint(checkpoint_dir=path_to_checkpoint)
+
         for epoch in range(start_epoch, epochs):
             logging.info(f'{Fore.GREEN}Started training at epoch {epoch + 1}')
             self.train_loader.create_batches()

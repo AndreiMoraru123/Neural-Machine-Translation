@@ -23,8 +23,8 @@ dropout = 0.1  # dropout probability
 positional_encoding = fast_positional_encoding(d_model=d_model, max_length=160)
 
 # Training params
-tokens_in_batch = 550  # batch size in target language tokens
-batches_per_step = 6600 // tokens_in_batch  # perform a training step (update parameters) once every so many batches
+tokens_in_batch = 900  # batch size in target language tokens
+batches_per_step = 10000 // tokens_in_batch  # perform a training step (update parameters) once every so many batches
 print_frequency = 50  # print status once every so many steps
 save_every = 20000  # save every this many number of steps
 n_epochs = 3  # number of training epochs
@@ -51,8 +51,7 @@ model = Transformer(n_heads=n_heads, d_model=d_model, d_queries=d_queries, d_val
                     vocab_size=train_loader.bpe_model.vocab_size(),
                     positional_encoding=positional_encoding)
 
-
-lr_schedule = WarmupLearningRateSchedule(d_model=d_model, warmup_steps=2000)
+lr_schedule = WarmupLearningRateSchedule(d_model=d_model, warmup_steps=4000)
 
 optimizer = tf.keras.optimizers.Adam(learning_rate=lr_schedule,
                                      beta_1=betas[0],
@@ -69,9 +68,7 @@ trainer = Trainer(model=model,
                   log_dir=log_dir)
 
 if __name__ == "__main__""":
-
-    if path_to_checkpoint:
-        trainer.load_checkpoint(checkpoint_dir=path_to_checkpoint)
-
+    # Runs and manages the whole training pipeline
     trainer.train(start_epoch=0, epochs=n_epochs, batches_per_step=batches_per_step,
-                  print_frequency=print_frequency, save_every=save_every)
+                  print_frequency=print_frequency, save_every=save_every,
+                  path_to_checkpoint=path_to_checkpoint)
