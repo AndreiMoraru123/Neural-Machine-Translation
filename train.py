@@ -20,7 +20,7 @@ d_values = 64  # size of value vectors in the multi-head attention
 d_inner = 2048  # an intermediate size in the position-wise FC
 n_layers = 6  # number of layers in the Encoder and Decoder
 dropout = 0.1  # dropout probability
-positional_encoding = fast_positional_encoding(d_model=d_model, max_length=160)
+positional_encoding = fast_positional_encoding(d_model=d_model, max_length=100)
 
 # Training params
 tokens_in_batch = 900  # batch size in target language tokens
