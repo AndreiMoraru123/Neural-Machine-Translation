@@ -8,7 +8,7 @@
 > [!IMPORTANT]\
 > I am using python `3.9` with tensorflow `2.10` as this is their last available version for native-Windows on GPU.
 
-## Steps:
+## Steps
  1. [download.py](https://github.com/AndreiMoraru123/Neural-Machine-Translation/blob/main/download.py) downloads all the data (`en`-`de` file pairs from Europarl, Common Crawl and News Commentary) to the specified folder as argument.
  2. [encode.py](https://github.com/AndreiMoraru123/Neural-Machine-Translation/blob/main/encode.py) filters the data based on the arguments (origin, maximum length etc.) and trains the BPE model, saving it to a file.
  3. [train.py](https://github.com/AndreiMoraru123/Neural-Machine-Translation/blob/main/train.py) runs the whole training pipeline with top-down logic found in the file. Everything is managed by  the `Trainer` from [trainer.py](https://github.com/AndreiMoraru123/Neural-Machine-Translation/blob/main/trainer.py) (logging embeddings, checkpointing etc.).
