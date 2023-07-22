@@ -9,11 +9,11 @@
 > I am using python `3.9` with tensorflow `2.10` as this is their last available version for native-Windows on GPU.
 
 ## Steps:
- 1. `download.py` downloads all the data (`en`-`de` file pairs from Europarl, Common Crawl, News Commentary) to the specified folder.
- 2. `encode.py` filters the data based on the arguments (origin, maximum length etc.) and trains the BPE model, saving it to a file.
- 3. `train.py` manages the whole training pipeline with top-down logic in the file.
- 4. `translate.py` runs the model inference and optionally evaluates it using `sacrebleu`.
- 5. `docs` contains notes with svg's from [the original repo](https://github.com/sgrvinod/a-PyTorch-Tutorial-to-Machine-Translation/tree/master) and md's with required adaptations from one framework to another.  
+ 1. [download.py](https://github.com/AndreiMoraru123/Neural-Machine-Translation/blob/main/download.py) downloads all the data (`en`-`de` file pairs from Europarl, Common Crawl and News Commentary) to the specified folder as argument.
+ 2. [encode.py](https://github.com/AndreiMoraru123/Neural-Machine-Translation/blob/main/encode.py) filters the data based on the arguments (origin, maximum length etc.) and trains the BPE model, saving it to a file.
+ 3. [train.py](https://github.com/AndreiMoraru123/Neural-Machine-Translation/blob/main/train.py) runs the whole training pipeline with top-down logic found in the file. Everything is managed by  the `Trainer` from [trainer.py](https://github.com/AndreiMoraru123/Neural-Machine-Translation/blob/main/trainer.py) (logging embeddings, checkpointing etc.).
+ 4. [translate.py](https://github.com/AndreiMoraru123/Neural-Machine-Translation/blob/main/translate.py) runs the model inference and optionally evaluates it with `sacrebleu` using the `Evaluator` from [evaluator.py](https://github.com/AndreiMoraru123/Neural-Machine-Translation/blob/main/evaluator.py).
+ 5. [docs](https://github.com/AndreiMoraru123/Neural-Machine-Translation/tree/main/docs) contains notes with svg drawings from [the original repo](https://github.com/sgrvinod/a-PyTorch-Tutorial-to-Machine-Translation/tree/master) and markdown files explaining the choices I had to make for adaptating from one framework to another.  
 
 ## Overfitting on one sentence
 
