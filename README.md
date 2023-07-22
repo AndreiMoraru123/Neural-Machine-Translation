@@ -6,7 +6,7 @@
 > I adapted the code from [this awesome PyTorch version](https://github.com/sgrvinod/a-PyTorch-Tutorial-to-Machine-Translation/tree/master). Please check it out as well.
 
 > [!IMPORTANT]\
-> I am using python `3.9` with tensorflow `2.10` as this is their last available version for native-Windows with GPU support.
+> I am using python `3.9` with tensorflow `2.10` as this is their last available version for native-Windows on GPU.
 
 ## Overfitting on one sentence
 
