@@ -13,7 +13,9 @@
  2. [encode.py](https://github.com/AndreiMoraru123/Neural-Machine-Translation/blob/main/encode.py) filters the data based on the arguments (origin, maximum length etc.) and trains the BPE model, saving it to a file.
  3. [train.py](https://github.com/AndreiMoraru123/Neural-Machine-Translation/blob/main/train.py) runs the whole training pipeline with top-down logic found in the file. Everything is managed by  the `Trainer` from [trainer.py](https://github.com/AndreiMoraru123/Neural-Machine-Translation/blob/main/trainer.py) (logging embeddings, checkpointing etc.).
  4. [translate.py](https://github.com/AndreiMoraru123/Neural-Machine-Translation/blob/main/translate.py) runs the model inference and optionally evaluates it with `sacrebleu` using the `Evaluator` from [evaluator.py](https://github.com/AndreiMoraru123/Neural-Machine-Translation/blob/main/evaluator.py).
- 5. [docs](https://github.com/AndreiMoraru123/Neural-Machine-Translation/tree/main/docs) contains notes with svg drawings from [the original repo](https://github.com/sgrvinod/a-PyTorch-Tutorial-to-Machine-Translation/tree/master) and markdown files explaining the choices I had to make for adaptating from one framework to another.  
+ 5. [docs](https://github.com/AndreiMoraru123/Neural-Machine-Translation/tree/main/docs) contains notes with svg drawings from [the original repo](https://github.com/sgrvinod/a-PyTorch-Tutorial-to-Machine-Translation/tree/master) and markdown files explaining the choices I had to make for adaptating from one framework to another.
+
+The code itself is heavily commented and you can get a feel for how transformers and attention work by looking at the [tests](https://github.com/AndreiMoraru123/Neural-Machine-Translation/tree/main/test).
 
 ## Overfitting on one sentence
 
