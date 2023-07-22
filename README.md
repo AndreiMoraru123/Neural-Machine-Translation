@@ -6,7 +6,7 @@
 > I adapted the code from [this awesome PyTorch version](https://github.com/sgrvinod/a-PyTorch-Tutorial-to-Machine-Translation/tree/master). Please check it out as well.
 
 > [!IMPORTANT]\
-> I am using python `3.9` with tensorflow `2.10` as this is their last available version for native-Windows.
+> I am using python `3.9` with tensorflow `2.10` as this is their last available version for native-Windows with GPU support.
 
 ## Overfitting on one sentence
 
@@ -55,9 +55,8 @@ All generated sequences in the beam (k=5) search:
                 'Jahreswechsel und hoffe, daß Sie schöne Ferien hatten.',
   'score': -3.3361663818359375}]
 ```
-  
-> **Note**
-> These are negative as they are log probabilities, the closest to zero is the top sequence
+
+These are negative as they are log probabilities, the closest to zero being the top sequence
 
 As a sanity check, the BLUE score should be a perfect `100/100` in all cases:
 
