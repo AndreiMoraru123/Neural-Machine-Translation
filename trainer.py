@@ -5,11 +5,12 @@ import shutil
 import logging
 
 # third-party imports
-from colorama import Fore, init  # type: ignore
 import tensorflow as tf  # type: ignore
 from tensorflow.keras.metrics import Mean  # type: ignore
 from tensorflow.keras.optimizers import Optimizer  # type: ignore
 from tensorboard.plugins import projector  # type: ignore
+from colorama import Fore, init  # type: ignore
+from tqdm import tqdm
 
 # module imports
 from model import Transformer
@@ -41,6 +42,7 @@ class Trainer:
         :param criterion: Smooth Label Cross-Entropy loss
         :param train_loader: the sequence loader in train configuration
         :param val_loader: the sequence loader in validation configuration
+        :param log_dir: directory location for TensorBoard logging
         """
         logging.info(f'{Fore.GREEN}Initializing Trainer')
 
@@ -245,7 +247,9 @@ class Trainer:
         """Validates the model over the validation loader."""
         losses = Mean()
 
-        for i, (source_seqs, target_seqs, source_seq_lengths, target_seq_lengths) in enumerate(self.val_loader):
+        for i, (source_seqs, target_seqs, source_seq_lengths, target_seq_lengths) in enumerate(
+            tqdm(self.val_loader, total=self.val_loader.n_batches)
+        ):
             # Forward pass
             predictions = self.model(encoder_sequences=source_seqs,
                                      decoder_sequences=target_seqs,

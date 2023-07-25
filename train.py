@@ -20,7 +20,7 @@ d_values = 64  # size of value vectors in the multi-head attention
 d_inner = 2048  # an intermediate size in the position-wise FC
 n_layers = 6  # number of layers in the Encoder and Decoder
 dropout = 0.1  # dropout probability
-positional_encoding = fast_positional_encoding(d_model=d_model, max_length=160)
+positional_encoding = fast_positional_encoding(d_model=d_model, max_length=200)
 
 # Training params
 tokens_in_batch = 900  # batch size in target language tokens
@@ -32,7 +32,7 @@ warmup_steps = 16000  # number of warmup steps where learning rate is increased 
 betas = (0.9, 0.98)  # beta coefficients in the Adam optimizer
 epsilon = 1e-9  # epsilon term in the Adam optimizer
 label_smoothing = 0.1  # label smoothing coefficient in the Cross Entropy loss
-path_to_checkpoint = ""
+path_to_checkpoint = "checkpoints/transformer_checkpoint_60000_1"
 
 train_loader = SequenceLoader(data_folder=data_folder,
                               source_suffix="en",
@@ -51,7 +51,7 @@ model = Transformer(n_heads=n_heads, d_model=d_model, d_queries=d_queries, d_val
                     vocab_size=train_loader.bpe_model.vocab_size(),
                     positional_encoding=positional_encoding)
 
-lr_schedule = WarmupLearningRateSchedule(d_model=d_model, warmup_steps=4000)
+lr_schedule = WarmupLearningRateSchedule(d_model=d_model, warmup_steps=2000)
 
 optimizer = tf.keras.optimizers.Adam(learning_rate=lr_schedule,
                                      beta_1=betas[0],
