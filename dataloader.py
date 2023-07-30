@@ -106,7 +106,7 @@ class SequenceLoader(object):
                 seqs_per_batch = self.tokens_in_batch // chunk[0][3]
                 self.all_batches.extend(
                     [
-                        chunk[i : i + seqs_per_batch]
+                        chunk[i: i + seqs_per_batch]
                         for i in range(0, len(chunk), seqs_per_batch)
                     ]
                 )
