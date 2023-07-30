@@ -23,7 +23,7 @@ def training_configuration():
         "source_suffix": "en",
         "target_suffix": "de",
         "split": "train",
-        "tokens_in_batch": 512
+        "tokens_in_batch": 512,
     }
     return config
 
@@ -31,10 +31,16 @@ def training_configuration():
 @pytest.fixture(name="dummy_loader")
 def dummy_sequence_loader(train_config):
     """Dummy sequence loader with skipped batch generation."""
-    with patch.object(SequenceLoader, 'create_batches', return_value=None) as mock_method:
-        loader = SequenceLoader(data_folder=train_config["data_folder"], source_suffix=train_config["source_suffix"],
-                                target_suffix=train_config["target_suffix"], split=train_config["split"],
-                                tokens_in_batch=train_config["tokens_in_batch"])
+    with patch.object(
+        SequenceLoader, "create_batches", return_value=None
+    ) as mock_method:
+        loader = SequenceLoader(
+            data_folder=train_config["data_folder"],
+            source_suffix=train_config["source_suffix"],
+            target_suffix=train_config["target_suffix"],
+            split=train_config["split"],
+            tokens_in_batch=train_config["tokens_in_batch"],
+        )
         mock_method.assert_called_once()
     return loader
 
@@ -42,9 +48,13 @@ def dummy_sequence_loader(train_config):
 @pytest.fixture(name="loader")
 def sequence_loader(train_config):
     """Sequence loader in train configuration."""
-    loader = SequenceLoader(data_folder=train_config["data_folder"], source_suffix=train_config["source_suffix"],
-                            target_suffix=train_config["target_suffix"], split=train_config["split"],
-                            tokens_in_batch=train_config["tokens_in_batch"])
+    loader = SequenceLoader(
+        data_folder=train_config["data_folder"],
+        source_suffix=train_config["source_suffix"],
+        target_suffix=train_config["target_suffix"],
+        split=train_config["split"],
+        tokens_in_batch=train_config["tokens_in_batch"],
+    )
     return loader
 
 
@@ -75,5 +85,9 @@ def test_next_dunder(loader):
     assert tf.rank(source_lengths) == 1, "source_lengths should be a 1D Tensor."
     assert tf.rank(target_lengths) == 1, "target_lengths should be a 1D Tensor."
 
-    assert source_data.shape[0] == target_data.shape[0], "Mismatch between number of source and target sequences."
-    assert source_lengths.shape[0] == target_lengths.shape[0], "Mismatch between number of source and target lengths."
+    assert (
+        source_data.shape[0] == target_data.shape[0]
+    ), "Mismatch between number of source and target sequences."
+    assert (
+        source_lengths.shape[0] == target_lengths.shape[0]
+    ), "Mismatch between number of source and target lengths."

@@ -24,7 +24,9 @@ positional_encoding = fast_positional_encoding(d_model=d_model, max_length=200)
 
 # Training params
 tokens_in_batch = 900  # batch size in target language tokens
-batches_per_step = 10000 // tokens_in_batch  # perform a training step (update parameters) once every so many batches
+batches_per_step = (
+    10000 // tokens_in_batch
+)  # perform a training step (update parameters) once every so many batches
 print_frequency = 50  # print status once every so many steps
 save_every = 20000  # save every this many number of steps
 n_epochs = 3  # number of training epochs
@@ -34,41 +36,58 @@ epsilon = 1e-9  # epsilon term in the Adam optimizer
 label_smoothing = 0.1  # label smoothing coefficient in the Cross Entropy loss
 path_to_checkpoint = "checkpoints/transformer_checkpoint_60000_1"
 
-train_loader = SequenceLoader(data_folder=data_folder,
-                              source_suffix="en",
-                              target_suffix="de",
-                              split="train",
-                              tokens_in_batch=tokens_in_batch)
+train_loader = SequenceLoader(
+    data_folder=data_folder,
+    source_suffix="en",
+    target_suffix="de",
+    split="train",
+    tokens_in_batch=tokens_in_batch,
+)
 
-val_loader = SequenceLoader(data_folder=data_folder,
-                            source_suffix="en",
-                            target_suffix="de",
-                            split="val",
-                            tokens_in_batch=tokens_in_batch)
+val_loader = SequenceLoader(
+    data_folder=data_folder,
+    source_suffix="en",
+    target_suffix="de",
+    split="val",
+    tokens_in_batch=tokens_in_batch,
+)
 
-model = Transformer(n_heads=n_heads, d_model=d_model, d_queries=d_queries, d_values=d_values,
-                    d_inner=d_inner, n_layers=n_layers, dropout=dropout,
-                    vocab_size=train_loader.bpe_model.vocab_size(),
-                    positional_encoding=positional_encoding)
+model = Transformer(
+    n_heads=n_heads,
+    d_model=d_model,
+    d_queries=d_queries,
+    d_values=d_values,
+    d_inner=d_inner,
+    n_layers=n_layers,
+    dropout=dropout,
+    vocab_size=train_loader.bpe_model.vocab_size(),
+    positional_encoding=positional_encoding,
+)
 
 lr_schedule = WarmupLearningRateSchedule(d_model=d_model, warmup_steps=2000)
 
-optimizer = tf.keras.optimizers.Adam(learning_rate=lr_schedule,
-                                     beta_1=betas[0],
-                                     beta_2=betas[1],
-                                     epsilon=epsilon)
+optimizer = tf.keras.optimizers.Adam(
+    learning_rate=lr_schedule, beta_1=betas[0], beta_2=betas[1], epsilon=epsilon
+)
 
 criterion = LabelSmoothedCrossEntropy(eps=label_smoothing)
 
-trainer = Trainer(model=model,
-                  optimizer=optimizer,
-                  criterion=criterion,
-                  train_loader=train_loader,
-                  val_loader=val_loader,
-                  log_dir=log_dir)
+trainer = Trainer(
+    model=model,
+    optimizer=optimizer,
+    criterion=criterion,
+    train_loader=train_loader,
+    val_loader=val_loader,
+    log_dir=log_dir,
+)
 
-if __name__ == "__main__""":
+if __name__ == "__main__" "":
     # Runs and manages the whole training pipeline
-    trainer.train(start_epoch=0, epochs=n_epochs, batches_per_step=batches_per_step,
-                  print_frequency=print_frequency, save_every=save_every,
-                  path_to_checkpoint=path_to_checkpoint)
+    trainer.train(
+        start_epoch=0,
+        epochs=n_epochs,
+        batches_per_step=batches_per_step,
+        print_frequency=print_frequency,
+        save_every=save_every,
+        path_to_checkpoint=path_to_checkpoint,
+    )

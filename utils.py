@@ -34,7 +34,7 @@ class WarmupLearningRateSchedule(schedules.LearningRateSchedule):
         self.increment_step()
         step = tf.cast(self.total_steps, tf.float32)
         arg1 = tf.math.rsqrt(step)
-        arg2 = step * (self.warmup_steps ** -1.5)
+        arg2 = step * (self.warmup_steps**-1.5)
         return tf.math.rsqrt(self.d_model) * tf.math.minimum(arg1, arg2)
 
 
@@ -48,7 +48,7 @@ def fast_positional_encoding(d_model: int, max_length: int = 100) -> tf.Tensor:
     """
 
     position = np.arange(max_length)[:, np.newaxis]
-    division_term = np.exp(np.arange(0., d_model, 2) * -(np.log(10000.0) / d_model))
+    division_term = np.exp(np.arange(0.0, d_model, 2) * -(np.log(10000.0) / d_model))
 
     positional_encoding = np.zeros((max_length, d_model))
     positional_encoding[:, 0::2] = np.sin(position * division_term)

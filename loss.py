@@ -37,7 +37,7 @@ class LabelSmoothedCrossEntropy(losses.Loss):
         # Smoothed one-hot vectors for the gold sequences
         depth = tf.cast(y_pred.shape[-1], tf.int32)
         target_vector = tf.one_hot(y_true_flat, depth)
-        target_vector = target_vector * (1. - self.eps) + self.eps / y_pred.shape[-1]
+        target_vector = target_vector * (1.0 - self.eps) + self.eps / y_pred.shape[-1]
 
         # Compute smoothed cross-entropy loss
         loss = -1 * target_vector * tf.nn.log_softmax(y_pred_flat, axis=-1)

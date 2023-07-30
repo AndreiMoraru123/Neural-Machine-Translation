@@ -22,9 +22,11 @@ def download_data(data_folder: str):
     :param data_folder: the folder where the files will be downloaded
 
     """
-    train_urls = ["http://www.statmt.org/wmt13/training-parallel-europarl-v7.tgz",
-                  "https://www.statmt.org/wmt13/training-parallel-commoncrawl.tgz",
-                  "http://www.statmt.org/wmt14/training-parallel-nc-v9.tgz"]
+    train_urls = [
+        "http://www.statmt.org/wmt13/training-parallel-europarl-v7.tgz",
+        "https://www.statmt.org/wmt13/training-parallel-commoncrawl.tgz",
+        "http://www.statmt.org/wmt14/training-parallel-nc-v9.tgz",
+    ]
 
     print("\n\nThis may take a while.")
 
@@ -52,24 +54,73 @@ def download_data(data_folder: str):
 
     # Download validation and testing data using sacreBLEU since we will be using this library to calculate BLEU scores
     subprocess.run(
-        ["sacrebleu", "-t", "wmt13", "-l", "en-de", "--echo", "src", ">", os.path.join(data_folder, "val.en")],
-        shell=True)
+        [
+            "sacrebleu",
+            "-t",
+            "wmt13",
+            "-l",
+            "en-de",
+            "--echo",
+            "src",
+            ">",
+            os.path.join(data_folder, "val.en"),
+        ],
+        shell=True,
+    )
     subprocess.run(
-        ["sacrebleu", "-t", "wmt13", "-l", "en-de", "--echo", "ref", ">", os.path.join(data_folder, "val.de")],
-        shell=True)
+        [
+            "sacrebleu",
+            "-t",
+            "wmt13",
+            "-l",
+            "en-de",
+            "--echo",
+            "ref",
+            ">",
+            os.path.join(data_folder, "val.de"),
+        ],
+        shell=True,
+    )
     subprocess.run(
-        ["sacrebleu", "-t", "wmt14/full", "-l", "en-de", "--echo", "src", ">", os.path.join(data_folder, "test.en")],
-        shell=True)
+        [
+            "sacrebleu",
+            "-t",
+            "wmt14/full",
+            "-l",
+            "en-de",
+            "--echo",
+            "src",
+            ">",
+            os.path.join(data_folder, "test.en"),
+        ],
+        shell=True,
+    )
     subprocess.run(
-        ["sacrebleu", "-t", "wmt14/full", "-l", "en-de", "--echo", "ref", ">", os.path.join(data_folder, "test.de")],
-        shell=True)
+        [
+            "sacrebleu",
+            "-t",
+            "wmt14/full",
+            "-l",
+            "en-de",
+            "--echo",
+            "ref",
+            ">",
+            os.path.join(data_folder, "test.de"),
+        ],
+        shell=True,
+    )
 
     # Move files if they were extracted into a subdirectory
-    for dir in [d for d in os.listdir(os.path.join(data_folder, "extracted files")) if
-                os.path.isdir(os.path.join(data_folder, "extracted files", d))]:
+    for dir in [
+        d
+        for d in os.listdir(os.path.join(data_folder, "extracted files"))
+        if os.path.isdir(os.path.join(data_folder, "extracted files", d))
+    ]:
         for f in os.listdir(os.path.join(data_folder, "extracted files", dir)):
-            shutil.move(os.path.join(data_folder, "extracted files", dir, f),
-                        os.path.join(data_folder, "extracted files"))
+            shutil.move(
+                os.path.join(data_folder, "extracted files", dir, f),
+                os.path.join(data_folder, "extracted files"),
+            )
         os.rmdir(os.path.join(data_folder, "extracted files", dir))
 
 

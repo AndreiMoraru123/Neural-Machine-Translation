@@ -37,9 +37,13 @@ class MultiHeadAttention(layers.Layer):
         self.in_decoder = in_decoder
 
         # Attention distribution logic
-        assert self.d_queries % self.n_heads == 0, 'd_queries must be divisible by n_heads'
-        assert self.d_values % self.n_heads == 0, 'd_values must be divisible by n_heads'
-        assert self.d_keys % self.n_heads == 0, 'd_keys must be divisible by n_heads'
+        assert (
+            self.d_queries % self.n_heads == 0
+        ), "d_queries must be divisible by n_heads"
+        assert (
+            self.d_values % self.n_heads == 0
+        ), "d_values must be divisible by n_heads"
+        assert self.d_keys % self.n_heads == 0, "d_keys must be divisible by n_heads"
 
         # Projection Layers
         self.cast_queries = layers.Dense(n_heads * d_queries)
@@ -92,57 +96,86 @@ class MultiHeadAttention(layers.Layer):
 
         self_attention = tensors_are_equal(key_value_sequences, query_sequences)
 
-        query_sequences = self.layer_norm(query_sequences)  # (N, query_sequence_pad_length, d_model)
+        query_sequences = self.layer_norm(
+            query_sequences
+        )  # (N, query_sequence_pad_length, d_model)
 
         # (N, key_value_sequence_pad_length, d_model)
-        key_value_sequences = tf.cond(self_attention,  # is this self attention or is it cross attention?
-                                      true_fn=lambda: self.layer_norm(key_value_sequences),  # need layer normalization
-                                      false_fn=lambda: key_value_sequences)  # they have already been normalized
+        key_value_sequences = tf.cond(
+            self_attention,  # is this self attention or is it cross attention?
+            true_fn=lambda: self.layer_norm(
+                key_value_sequences
+            ),  # need layer normalization
+            false_fn=lambda: key_value_sequences,
+        )  # they have already been normalized
 
         input_to_add = query_sequences  # tf Tensors are immutable, so no worries, assigning creates a copy by itself
 
-        queries = self.cast_queries(query_sequences)  # (N, query_sequence_pad_length, n_heads * d_queries)
+        queries = self.cast_queries(
+            query_sequences
+        )  # (N, query_sequence_pad_length, n_heads * d_queries)
         keys_values = self.cast_keys_values(key_value_sequences)
-        keys, values = tf.split(keys_values, [self.n_heads * self.d_keys, self.n_heads * self.d_values], axis=-1)
+        keys, values = tf.split(
+            keys_values,
+            [self.n_heads * self.d_keys, self.n_heads * self.d_values],
+            axis=-1,
+        )
 
         # Re-arrange axes such that the last two dimensions are the sequence lengths and the queries/keys/values
         # And then, for convenience, convert to 3D tensors by merging the batch and n_heads dimensions
         # This is to prepare it for the batch matrix multiplication (i.e. the dot product)
 
         queries = einops.rearrange(
-            queries, 'b q (h d) -> b q h d',  # (N, query_sequence_pad_length, n_heads, d_queries)
-            h=self.n_heads, d=self.d_queries
+            queries,
+            "b q (h d) -> b q h d",  # (N, query_sequence_pad_length, n_heads, d_queries)
+            h=self.n_heads,
+            d=self.d_queries,
         )
         keys = einops.rearrange(
-            keys, 'b kv (h d) -> b kv h d',  # (N, key_value_sequence_pad_length, n_heads, d_keys)
-            h=self.n_heads, d=self.d_keys
+            keys,
+            "b kv (h d) -> b kv h d",  # (N, key_value_sequence_pad_length, n_heads, d_keys)
+            h=self.n_heads,
+            d=self.d_keys,
         )
         values = einops.rearrange(
-            values, 'b kv (h d) -> b kv h d',  # (N, key_value_sequence_pad_length, n_heads, d_values)
-            h=self.n_heads, d=self.d_values
+            values,
+            "b kv (h d) -> b kv h d",  # (N, key_value_sequence_pad_length, n_heads, d_values)
+            h=self.n_heads,
+            d=self.d_values,
         )
 
         # We want to parallelize the attentions, so we extend the heads as batches, so the 4D tensors become 3D.
 
         queries = einops.rearrange(
-            queries, 'b q h d -> (b h) q d'  # (N * n_heads, query_sequence_pad_length, d_queries)
+            queries,
+            "b q h d -> (b h) q d",  # (N * n_heads, query_sequence_pad_length, d_queries)
         )
         keys = einops.rearrange(
-            keys, 'b kv h d -> (b h) kv d'  # (N * n_heads, key_value_sequence_pad_length, d_keys)
+            keys,
+            "b kv h d -> (b h) kv d",  # (N * n_heads, key_value_sequence_pad_length, d_keys)
         )
         values = einops.rearrange(
-            values, 'b kv h d -> (b h) kv d'  # (N * n_heads, key_value_sequence_pad_length, d_values)
+            values,
+            "b kv h d -> (b h) kv d",  # (N * n_heads, key_value_sequence_pad_length, d_values)
         )
 
-        attention_weights = tf.linalg.matmul(queries, keys, transpose_b=True)  # dot product
+        attention_weights = tf.linalg.matmul(
+            queries, keys, transpose_b=True
+        )  # dot product
         # (N * n_heads, query_sequence_pad_length, key_value_sequence_pad_length)
-        attention_weights = (1. / tf.math.sqrt(tf.cast(self.d_keys, dtype=tf.float32))) * attention_weights  # scale
+        attention_weights = (
+            1.0 / tf.math.sqrt(tf.cast(self.d_keys, dtype=tf.float32))
+        ) * attention_weights  # scale
 
         # Use broadcasting for comparison to mask paddings
-        range_tensor = tf.range(key_value_sequence_pad_length, dtype=tf.int32)  # (key_value_sequence_pad_length)
+        range_tensor = tf.range(
+            key_value_sequence_pad_length, dtype=tf.int32
+        )  # (key_value_sequence_pad_length)
 
         # Repeat key_value_sequence_lengths to match the number of heads
-        lengths_tensor = tf.repeat(key_value_sequence_lengths, self.n_heads)  # (N * n_heads)
+        lengths_tensor = tf.repeat(
+            key_value_sequence_lengths, self.n_heads
+        )  # (N * n_heads)
 
         # Use broadcasting for comparison -> (N * n_heads, 1, key_value_sequence_pad_length)
         not_pad_in_keys = range_tensor[None, None, :] < lengths_tensor[:, None, None]
@@ -151,31 +184,44 @@ class MultiHeadAttention(layers.Layer):
         # (N * n_heads, query_sequence_pad_length, key_value_sequence_pad_length)
         not_pad_in_keys = tf.repeat(not_pad_in_keys, query_sequence_pad_length, axis=1)
 
-        attention_weights = tf.where(not_pad_in_keys, attention_weights, -float('inf'))
+        attention_weights = tf.where(not_pad_in_keys, attention_weights, -float("inf"))
 
         def mask_future():
             """Masks future unseen tokens for decoding."""
-            not_future_mask = tf.cast(tf.linalg.band_part(tf.ones_like(attention_weights), -1, 0), tf.bool)
-            return tf.where(not_future_mask, attention_weights, -float('inf'))
+            not_future_mask = tf.cast(
+                tf.linalg.band_part(tf.ones_like(attention_weights), -1, 0), tf.bool
+            )
+            return tf.where(not_future_mask, attention_weights, -float("inf"))
 
         # Decide whether attention weights stay the same (encoding) or get masked (decoding)
-        attention_weights = tf.cond(tf.logical_and(self.in_decoder, self_attention),
-                                    true_fn=mask_future, false_fn=lambda: attention_weights)
+        attention_weights = tf.cond(
+            tf.logical_and(self.in_decoder, self_attention),
+            true_fn=mask_future,
+            false_fn=lambda: attention_weights,
+        )
 
-        attention_weights = tf.nn.softmax(attention_weights)  # softmax along the key dimension
+        attention_weights = tf.nn.softmax(
+            attention_weights
+        )  # softmax along the key dimension
         attention_weights = self.dropout(attention_weights, training=training)
 
-        sequences = tf.linalg.matmul(attention_weights, values)  # (N * n_heads, query_sequence_pad_length, d_values)
+        sequences = tf.linalg.matmul(
+            attention_weights, values
+        )  # (N * n_heads, query_sequence_pad_length, d_values)
 
         # Unmerge batch dimension and number of heads to restore original axes
         sequences = einops.rearrange(
-            sequences, '(b h) q d -> b q h d', h=self.n_heads,  # (N, query_sequence_pad_length, n_heads, d_values)
+            sequences,
+            "(b h) q d -> b q h d",
+            h=self.n_heads,  # (N, query_sequence_pad_length, n_heads, d_values)
         )
 
         # Concatenate the n_heads subspaces  (N, query_sequence_pad_length, n_heads * d_values)
-        sequences = einops.rearrange(sequences, 'b q h d -> b q (h d)')
+        sequences = einops.rearrange(sequences, "b q h d -> b q (h d)")
         # Transform the concatenated subspace sequences into a single output of size d_model
-        sequences = self.cast_output(sequences)  # (N, query_sequence_pad_length, d_model)
+        sequences = self.cast_output(
+            sequences
+        )  # (N, query_sequence_pad_length, d_model)
         # Dropout and residual connection
         sequences = self.dropout(sequences, training=training) + input_to_add
 
@@ -214,9 +260,13 @@ class FeedForward(layers.Layer):
         sequences = self.layer_norm(sequences)  # (N, pad_length, d_model)
 
         # Force the model to learn into a different dimensionality
-        sequences = self.dropout(tf.nn.relu(self.fc1(sequences)), training=training)  # (N, pad_length, d_inner)
+        sequences = self.dropout(
+            tf.nn.relu(self.fc1(sequences)), training=training
+        )  # (N, pad_length, d_inner)
         sequences = self.fc2(sequences)  # (N, pad_length, d_model)
-        sequences = self.dropout(sequences, training=training) + input_to_add  # (N, pad_length, d_model)
+        sequences = (
+            self.dropout(sequences, training=training) + input_to_add
+        )  # (N, pad_length, d_model)
 
         return sequences
 
@@ -270,9 +320,17 @@ class Encoder(layers.Layer):
     def _make_layer(self):
         """Creates a single encoder layer by combining MHA + FFN sub layers."""
 
-        multi_head_attention = MultiHeadAttention(d_model=self.d_model, n_heads=self.n_heads, d_queries=self.d_queries,
-                                                  d_values=self.d_values, dropout=self.dropout, in_decoder=False)
-        feed_forward_network = FeedForward(d_model=self.d_model, d_inner=self.d_inner, dropout=self.dropout)
+        multi_head_attention = MultiHeadAttention(
+            d_model=self.d_model,
+            n_heads=self.n_heads,
+            d_queries=self.d_queries,
+            d_values=self.d_values,
+            dropout=self.dropout,
+            in_decoder=False,
+        )
+        feed_forward_network = FeedForward(
+            d_model=self.d_model, d_inner=self.d_inner, dropout=self.dropout
+        )
 
         return [multi_head_attention, feed_forward_network]
 
@@ -280,7 +338,7 @@ class Encoder(layers.Layer):
         self,
         encoder_sequences: tf.Tensor,
         encoder_sequence_lengths: tf.Tensor,
-        training: bool = True
+        training: bool = True,
     ) -> tf.Tensor:
         """
         Forward pass of the Encoder.
@@ -291,22 +349,36 @@ class Encoder(layers.Layer):
         :return: encoded source language sequences, a Tensor of shape (N, pad_length, d_model)
         """
 
-        pad_length = tf.shape(encoder_sequences)[1]  # for this batch only, varies across batches
-        encoder_sequences = self.embedding(encoder_sequences) * tf.math.sqrt(tf.cast(self.d_model, tf.float32))
-        encoder_sequences += self.positional_encoding[:, :pad_length]  # (N, pad_length, d_model)
+        pad_length = tf.shape(encoder_sequences)[
+            1
+        ]  # for this batch only, varies across batches
+        encoder_sequences = self.embedding(encoder_sequences) * tf.math.sqrt(
+            tf.cast(self.d_model, tf.float32)
+        )
+        encoder_sequences += self.positional_encoding[
+            :, :pad_length
+        ]  # (N, pad_length, d_model)
 
-        encoder_sequences = self.dropout_layer(encoder_sequences, training=training)  # (N, pad_length, d_model)
+        encoder_sequences = self.dropout_layer(
+            encoder_sequences, training=training
+        )  # (N, pad_length, d_model)
 
         for encoder_layer in self.encoder_layers:
             # Multi Head Attention layer
-            encoder_sequences = encoder_layer[0](query_sequences=encoder_sequences,
-                                                 key_value_sequences=encoder_sequences,
-                                                 key_value_sequence_lengths=encoder_sequence_lengths,
-                                                 training=training)
+            encoder_sequences = encoder_layer[0](
+                query_sequences=encoder_sequences,
+                key_value_sequences=encoder_sequences,
+                key_value_sequence_lengths=encoder_sequence_lengths,
+                training=training,
+            )
             # Feed Forward layer
-            encoder_sequences = encoder_layer[1](sequences=encoder_sequences, training=training)
+            encoder_sequences = encoder_layer[1](
+                sequences=encoder_sequences, training=training
+            )
 
-        encoder_sequences = self.layer_norm(encoder_sequences)  # (N, pad_length, d_model)
+        encoder_sequences = self.layer_norm(
+            encoder_sequences
+        )  # (N, pad_length, d_model)
 
         return encoder_sequences
 
@@ -361,15 +433,31 @@ class Decoder(layers.Layer):
     def _make_layer(self):
         """Creates a single encoder layer by combining MHA + FFN sub layers."""
 
-        multi_head_attention_self = MultiHeadAttention(d_model=self.d_model, n_heads=self.n_heads,
-                                                       d_queries=self.d_queries, d_values=self.d_values,
-                                                       dropout=self.dropout, in_decoder=True)
-        multi_head_attention_cross = MultiHeadAttention(d_model=self.d_model, n_heads=self.n_heads,
-                                                        d_queries=self.d_queries, d_values=self.d_values,
-                                                        dropout=self.dropout, in_decoder=True)
-        feed_forward_network = FeedForward(d_model=self.d_model, d_inner=self.d_inner, dropout=self.dropout)
+        multi_head_attention_self = MultiHeadAttention(
+            d_model=self.d_model,
+            n_heads=self.n_heads,
+            d_queries=self.d_queries,
+            d_values=self.d_values,
+            dropout=self.dropout,
+            in_decoder=True,
+        )
+        multi_head_attention_cross = MultiHeadAttention(
+            d_model=self.d_model,
+            n_heads=self.n_heads,
+            d_queries=self.d_queries,
+            d_values=self.d_values,
+            dropout=self.dropout,
+            in_decoder=True,
+        )
+        feed_forward_network = FeedForward(
+            d_model=self.d_model, d_inner=self.d_inner, dropout=self.dropout
+        )
 
-        return [multi_head_attention_self, multi_head_attention_cross, feed_forward_network]
+        return [
+            multi_head_attention_self,
+            multi_head_attention_cross,
+            feed_forward_network,
+        ]
 
     def call(
         self,
@@ -377,7 +465,7 @@ class Decoder(layers.Layer):
         decoder_sequence_lengths: tf.Tensor,
         encoder_sequences: tf.Tensor,
         encoder_sequence_lengths: tf.Tensor,
-        training: bool = True
+        training: bool = True,
     ) -> tf.Tensor:
         """
         Forward pass of the Decoder.
@@ -390,27 +478,43 @@ class Decoder(layers.Layer):
         :return: decoded target language sequence, a Tensor of shape (N, pad_length, vocab_size)
         """
 
-        pad_length = tf.shape(decoder_sequences)[1]  # for this batch only, varies across batches
-        decoder_sequences = self.embedding(decoder_sequences) * tf.math.sqrt(tf.cast(self.d_model, tf.float32))
-        decoder_sequences += self.positional_encoding[:, :pad_length, :]  # (N, pad_length, d_model)
+        pad_length = tf.shape(decoder_sequences)[
+            1
+        ]  # for this batch only, varies across batches
+        decoder_sequences = self.embedding(decoder_sequences) * tf.math.sqrt(
+            tf.cast(self.d_model, tf.float32)
+        )
+        decoder_sequences += self.positional_encoding[
+            :, :pad_length, :
+        ]  # (N, pad_length, d_model)
 
-        decoder_sequences = self.dropout_layer(decoder_sequences, training=training)  # (N, pad_length, d_model)
+        decoder_sequences = self.dropout_layer(
+            decoder_sequences, training=training
+        )  # (N, pad_length, d_model)
 
         for decoder_layer in self.decoder_layers:
             # Multi Head Self Attention layer
-            decoder_sequences = decoder_layer[0](query_sequences=decoder_sequences,
-                                                 key_value_sequences=decoder_sequences,
-                                                 key_value_sequence_lengths=decoder_sequence_lengths,
-                                                 training=training)
+            decoder_sequences = decoder_layer[0](
+                query_sequences=decoder_sequences,
+                key_value_sequences=decoder_sequences,
+                key_value_sequence_lengths=decoder_sequence_lengths,
+                training=training,
+            )
             # Multi Head Cross Attention layer
-            decoder_sequences = decoder_layer[1](query_sequences=decoder_sequences,
-                                                 key_value_sequences=encoder_sequences,
-                                                 key_value_sequence_lengths=encoder_sequence_lengths,
-                                                 training=training)
+            decoder_sequences = decoder_layer[1](
+                query_sequences=decoder_sequences,
+                key_value_sequences=encoder_sequences,
+                key_value_sequence_lengths=encoder_sequence_lengths,
+                training=training,
+            )
             # Feed Forward layer
-            decoder_sequences = decoder_layer[2](sequences=decoder_sequences, training=training)
+            decoder_sequences = decoder_layer[2](
+                sequences=decoder_sequences, training=training
+            )
 
-        decoder_sequences = self.layer_norm(decoder_sequences)  # (N, pad_length, d_model)
+        decoder_sequences = self.layer_norm(
+            decoder_sequences
+        )  # (N, pad_length, d_model)
 
         # Compute across vocabulary dimension
         decoder_sequences = self.fc(decoder_sequences)  # (N, pad_length, d_model)
@@ -458,25 +562,29 @@ class Transformer(Model):
         self.d_inner = d_inner
         self.n_layers = n_layers
 
-        self.encoder = Encoder(vocab_size=vocab_size,
-                               positional_encoding=positional_encoding,
-                               d_model=d_model,
-                               n_heads=n_heads,
-                               d_queries=d_queries,
-                               d_values=d_values,
-                               d_inner=d_inner,
-                               n_layers=n_layers,
-                               dropout=dropout)
+        self.encoder = Encoder(
+            vocab_size=vocab_size,
+            positional_encoding=positional_encoding,
+            d_model=d_model,
+            n_heads=n_heads,
+            d_queries=d_queries,
+            d_values=d_values,
+            d_inner=d_inner,
+            n_layers=n_layers,
+            dropout=dropout,
+        )
 
-        self.decoder = Decoder(vocab_size=vocab_size,
-                               positional_encoding=positional_encoding,
-                               d_model=d_model,
-                               n_heads=n_heads,
-                               d_queries=d_queries,
-                               d_values=d_values,
-                               d_inner=d_inner,
-                               n_layers=n_layers,
-                               dropout=dropout)
+        self.decoder = Decoder(
+            vocab_size=vocab_size,
+            positional_encoding=positional_encoding,
+            d_model=d_model,
+            n_heads=n_heads,
+            d_queries=d_queries,
+            d_values=d_values,
+            d_inner=d_inner,
+            n_layers=n_layers,
+            dropout=dropout,
+        )
 
     def call(
         self,
@@ -484,7 +592,7 @@ class Transformer(Model):
         decoder_sequences: tf.Tensor,
         encoder_sequence_lengths: tf.Tensor,
         decoder_sequence_lengths: tf.Tensor,
-        training: bool = False
+        training: bool = False,
     ) -> tf.Tensor:
         """
         Forward pass of the Transformer network.
@@ -497,13 +605,17 @@ class Transformer(Model):
         :return: decoded target language sequences, a tensor of size (N, decoder_sequence_pad_length, vocab_size)
         """
 
-        encoder_sequences = self.encoder(encoder_sequences,  # (N, encoder_sequence_pod_length, d_model)
-                                         encoder_sequence_lengths,
-                                         training=training)
+        encoder_sequences = self.encoder(
+            encoder_sequences,  # (N, encoder_sequence_pod_length, d_model)
+            encoder_sequence_lengths,
+            training=training,
+        )
 
-        decoder_sequences = self.decoder(decoder_sequences,  # (N, decoder_sequence_pad_length, vocab_size)
-                                         decoder_sequence_lengths,
-                                         encoder_sequences,
-                                         encoder_sequence_lengths)
+        decoder_sequences = self.decoder(
+            decoder_sequences,  # (N, decoder_sequence_pad_length, vocab_size)
+            decoder_sequence_lengths,
+            encoder_sequences,
+            encoder_sequence_lengths,
+        )
 
         return decoder_sequences

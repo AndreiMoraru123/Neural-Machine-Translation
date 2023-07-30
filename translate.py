@@ -24,18 +24,31 @@ positional_encoding = fast_positional_encoding(d_model=d_model, max_length=160)
 path_to_checkpoint = "checkpoints/transformer_checkpoint_60000_1"
 get_blue_score = True
 
-test_loader = SequenceLoader(data_folder=data_folder,
-                             source_suffix="en",
-                             target_suffix="de",
-                             split="test",
-                             tokens_in_batch=tokens_in_batch)
+test_loader = SequenceLoader(
+    data_folder=data_folder,
+    source_suffix="en",
+    target_suffix="de",
+    split="test",
+    tokens_in_batch=tokens_in_batch,
+)
 
-model = Transformer(n_heads=n_heads, d_model=d_model, d_queries=d_queries, d_values=d_values,
-                    d_inner=d_inner, n_layers=n_layers, dropout=dropout,
-                    vocab_size=test_loader.bpe_model.vocab_size(),
-                    positional_encoding=positional_encoding)
+model = Transformer(
+    n_heads=n_heads,
+    d_model=d_model,
+    d_queries=d_queries,
+    d_values=d_values,
+    d_inner=d_inner,
+    n_layers=n_layers,
+    dropout=dropout,
+    vocab_size=test_loader.bpe_model.vocab_size(),
+    positional_encoding=positional_encoding,
+)
 
-evaluator = Evaluator(model=model, test_loader=test_loader, bpe_model_path=os.path.join(data_folder, "bpe.model"))
+evaluator = Evaluator(
+    model=model,
+    test_loader=test_loader,
+    bpe_model_path=os.path.join(data_folder, "bpe.model"),
+)
 
 pp = PrettyPrinter()
 
@@ -43,10 +56,12 @@ if __name__ == "__main__":
     # Should not be run without a checkpoint
     evaluator.load_checkpoint(path_to_checkpoint)
     # Generate hypotheses for the given string
-    best_hypothesis, all_hypotheses = evaluator.translate("I declare resumed the session of the European Parliament "
-                                                          "adjourned on Friday 17 December 1999, and I would like "
-                                                          "once again to wish you a happy new year in the hope that "
-                                                          "you enjoyed a pleasant festive period.")
+    best_hypothesis, all_hypotheses = evaluator.translate(
+        "I declare resumed the session of the European Parliament "
+        "adjourned on Friday 17 December 1999, and I would like "
+        "once again to wish you a happy new year in the hope that "
+        "you enjoyed a pleasant festive period."
+    )
     pp.pprint(best_hypothesis)
     pp.pprint(all_hypotheses)
 

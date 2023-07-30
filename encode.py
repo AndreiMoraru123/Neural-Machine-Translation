@@ -7,9 +7,17 @@ import youtokentome  # type: ignore
 from tqdm import tqdm  # type: ignore
 
 
-def tokenize_and_filter_data(data_folder: str, euro_parl: bool = True, common_crawl: bool = True,
-                             news_commentary: bool = True, min_length: int = 3, max_length: int = 100,
-                             max_length_ratio: float = 1.5, vocab_size: int = 37000, retain_case: bool = True):
+def tokenize_and_filter_data(
+    data_folder: str,
+    euro_parl: bool = True,
+    common_crawl: bool = True,
+    news_commentary: bool = True,
+    min_length: int = 3,
+    max_length: int = 100,
+    max_length_ratio: float = 1.5,
+    vocab_size: int = 37000,
+    retain_case: bool = True,
+):
     """
     Filters and prepares the training data, trains a Byte-Pair Encoding (BPE) model.
 
@@ -27,7 +35,9 @@ def tokenize_and_filter_data(data_folder: str, euro_parl: bool = True, common_cr
     german = list()
     english = list()
     files = list()
-    assert euro_parl or common_crawl or news_commentary, "Set at least one dataset to True!"
+    assert (
+        euro_parl or common_crawl or news_commentary
+    ), "Set at least one dataset to True!"
     if euro_parl:
         files.append("europarl-v7.de-en")
     if common_crawl:
@@ -36,12 +46,20 @@ def tokenize_and_filter_data(data_folder: str, euro_parl: bool = True, common_cr
         files.append("news-commentary-v9.de-en")
     print("\nReading extracted files and combining...")
     for file in files:
-        with codecs.open(os.path.join(data_folder, "extracted files", file + ".de"), "r", encoding="utf-8") as f:
+        with codecs.open(
+            os.path.join(data_folder, "extracted files", file + ".de"),
+            "r",
+            encoding="utf-8",
+        ) as f:
             if retain_case:
                 german.extend(f.read().split("\n"))
             else:
                 german.extend(f.read().lower().split("\n"))
-        with codecs.open(os.path.join(data_folder, "extracted files", file + ".en"), "r", encoding="utf-8") as f:
+        with codecs.open(
+            os.path.join(data_folder, "extracted files", file + ".en"),
+            "r",
+            encoding="utf-8",
+        ) as f:
             if retain_case:
                 english.extend(f.read().split("\n"))
             else:
@@ -54,15 +72,19 @@ def tokenize_and_filter_data(data_folder: str, euro_parl: bool = True, common_cr
         f.write("\n".join(english))
     with codecs.open(os.path.join(data_folder, "train.de"), "w", encoding="utf-8") as f:
         f.write("\n".join(german))
-    with codecs.open(os.path.join(data_folder, "train.ende"), "w", encoding="utf-8") as f:
+    with codecs.open(
+        os.path.join(data_folder, "train.ende"), "w", encoding="utf-8"
+    ) as f:
         f.write("\n".join(english + german))
     del english, german  # free some RAM
 
     # Perform BPE
     print("\nLearning BPE...")
-    youtokentome.BPE.train(data=os.path.join(data_folder, "train.ende"),
-                           model=os.path.join(data_folder, "bpe.model"),
-                           vocab_size=vocab_size)
+    youtokentome.BPE.train(
+        data=os.path.join(data_folder, "train.ende"),
+        model=os.path.join(data_folder, "bpe.model"),
+        vocab_size=vocab_size,
+    )
 
     # Load BPE model
     print("\nLoading BPE model...")
@@ -83,13 +105,18 @@ def tokenize_and_filter_data(data_folder: str, euro_parl: bool = True, common_cr
         de_tok = bpe_model.encode(de, output_type=youtokentome.OutputType.ID)
         len_en_tok = len(en_tok)
         len_de_tok = len(de_tok)
-        if min_length < len_en_tok < max_length and \
-                min_length < len_de_tok < max_length and \
-                1. / max_length_ratio <= len_de_tok / len_en_tok <= max_length_ratio:
+        if (
+            min_length < len_en_tok < max_length
+            and min_length < len_de_tok < max_length
+            and 1.0 / max_length_ratio <= len_de_tok / len_en_tok <= max_length_ratio
+        ):
             pairs.append((en, de))
         else:
             continue
-    print("\nNote: %.2f pct. of en-de pairs were filtered out." % (100. * (len(english) - len(pairs)) / len(english)))
+    print(
+        "\nNote: %.2f pct. of en-de pairs were filtered out."
+        % (100.0 * (len(english) - len(pairs)) / len(english))
+    )
 
     # Rewrite files
     english, german = zip(*pairs)
@@ -107,6 +134,14 @@ def tokenize_and_filter_data(data_folder: str, euro_parl: bool = True, common_cr
 
 
 if __name__ == "__main__":
-    tokenize_and_filter_data(data_folder="data", euro_parl=True, common_crawl=False, news_commentary=False,
-                             min_length=3, max_length=100, max_length_ratio=2.0,
-                             retain_case=True, vocab_size=10000)
+    tokenize_and_filter_data(
+        data_folder="data",
+        euro_parl=True,
+        common_crawl=False,
+        news_commentary=False,
+        min_length=3,
+        max_length=100,
+        max_length_ratio=2.0,
+        retain_case=True,
+        vocab_size=10000,
+    )

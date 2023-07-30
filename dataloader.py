@@ -27,7 +27,14 @@ class SequenceLoader(object):
         Each batch contains a single source-target pair, in the same order as in the files from which they were read.
     """
 
-    def __init__(self, data_folder: str, source_suffix: str, target_suffix: str, split: str, tokens_in_batch: int):
+    def __init__(
+        self,
+        data_folder: str,
+        source_suffix: str,
+        target_suffix: str,
+        split: str,
+        tokens_in_batch: int,
+    ):
         """
         Sequence constructor that creates batches of sequences for a given data folder.
 
@@ -51,14 +58,28 @@ class SequenceLoader(object):
         self.for_training = self.split == "train"
         self.bpe_model = youtokentome.BPE(model=os.path.join(data_folder, "bpe.model"))
 
-        with codecs.open(os.path.join(data_folder, ".".join([split, source_suffix])), "r", encoding="utf-8") as f:
+        with codecs.open(
+            os.path.join(data_folder, ".".join([split, source_suffix])),
+            "r",
+            encoding="utf-8",
+        ) as f:
             source_data = f.read().split("\n")
-        with codecs.open(os.path.join(data_folder, ".".join([split, target_suffix])), "r", encoding="utf-8") as f:
+        with codecs.open(
+            os.path.join(data_folder, ".".join([split, target_suffix])),
+            "r",
+            encoding="utf-8",
+        ) as f:
             target_data = f.read().split("\n")
-        assert len(source_data) == len(target_data), "different number of source and target sequences"
+        assert len(source_data) == len(
+            target_data
+        ), "different number of source and target sequences"
 
-        source_lengths = [len(s) for s in self.bpe_model.encode(source_data, bos=False, eos=False)]
-        target_lengths = [len(t) for t in self.bpe_model.encode(target_data, bos=True, eos=True)]
+        source_lengths = [
+            len(s) for s in self.bpe_model.encode(source_data, bos=False, eos=False)
+        ]
+        target_lengths = [
+            len(t) for t in self.bpe_model.encode(target_data, bos=True, eos=True)
+        ]
 
         self.data = list(zip(source_data, target_data, source_lengths, target_lengths))
 
@@ -74,12 +95,21 @@ class SequenceLoader(object):
         if self.for_training:
             chunks = [list(g) for _, g in groupby(self.data, key=lambda x: x[3])]
 
-            self.all_batches = list()  # create batches with the same target sequence length
+            self.all_batches = (
+                list()
+            )  # create batches with the same target sequence length
             for chunk in chunks:
-                chunk.sort(key=lambda x: x[2])  # sort so that a batch would also have similar source sequence lengths
+                chunk.sort(
+                    key=lambda x: x[2]
+                )  # sort so that a batch would also have similar source sequence lengths
                 # div the expected batch size (tokens) by sequence length in this chunk to get # of sequences per batch
                 seqs_per_batch = self.tokens_in_batch // chunk[0][3]
-                self.all_batches.extend([chunk[i: i + seqs_per_batch] for i in range(0, len(chunk), seqs_per_batch)])
+                self.all_batches.extend(
+                    [
+                        chunk[i : i + seqs_per_batch]
+                        for i in range(0, len(chunk), seqs_per_batch)
+                    ]
+                )
 
             shuffle(self.all_batches)  # shuffle batches
             self.n_batches = len(self.all_batches)
@@ -91,7 +121,7 @@ class SequenceLoader(object):
             self.current_batch = -1
 
     def __iter__(self):
-        """ Required by iterator."""
+        """Required by iterator."""
         return self
 
     def get_vocabulary(self) -> List[str]:
@@ -115,15 +145,29 @@ class SequenceLoader(object):
         self.current_batch += 1  # type: ignore
 
         try:
-            source_data, target_data, source_lengths, target_lengths = zip(*self.all_batches[self.current_batch])
+            source_data, target_data, source_lengths, target_lengths = zip(
+                *self.all_batches[self.current_batch]
+            )
         except IndexError:
             raise StopIteration
 
-        source_data = self.bpe_model.encode(source_data, output_type=youtokentome.OutputType.ID, bos=False, eos=False)
-        target_data = self.bpe_model.encode(target_data, output_type=youtokentome.OutputType.ID, bos=True, eos=True)
+        source_data = self.bpe_model.encode(
+            source_data, output_type=youtokentome.OutputType.ID, bos=False, eos=False
+        )
+        target_data = self.bpe_model.encode(
+            target_data, output_type=youtokentome.OutputType.ID, bos=True, eos=True
+        )
 
-        source_data = pad_sequences(sequences=source_data, padding='post', value=self.bpe_model.subword_to_id('<PAD>'))
-        target_data = pad_sequences(sequences=target_data, padding='post', value=self.bpe_model.subword_to_id('<PAD>'))
+        source_data = pad_sequences(
+            sequences=source_data,
+            padding="post",
+            value=self.bpe_model.subword_to_id("<PAD>"),
+        )
+        target_data = pad_sequences(
+            sequences=target_data,
+            padding="post",
+            value=self.bpe_model.subword_to_id("<PAD>"),
+        )
 
         source_data = tf.convert_to_tensor(source_data, dtype=tf.int32)
         target_data = tf.convert_to_tensor(target_data, dtype=tf.int32)

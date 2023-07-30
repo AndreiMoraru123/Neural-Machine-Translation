@@ -6,17 +6,26 @@ import tensorflow as tf  # type: ignore
 from loss import LabelSmoothedCrossEntropy
 
 
-@pytest.fixture(name="loss_input_data", params=[(10, 25, 10000), "zero_loss", "high_loss"])
+@pytest.fixture(
+    name="loss_input_data", params=[(10, 25, 10000), "zero_loss", "high_loss"]
+)
 def input_data_for_loss(request):
 
     if isinstance(request.param, tuple):
         batch_size, seq_len, vocab_size = request.param
 
         # Decoded sequences
-        inputs = tf.random.uniform((batch_size, seq_len, vocab_size), minval=0, maxval=vocab_size,  dtype=tf.float32)
+        inputs = tf.random.uniform(
+            (batch_size, seq_len, vocab_size),
+            minval=0,
+            maxval=vocab_size,
+            dtype=tf.float32,
+        )
 
         # target sequences
-        targets = tf.random.uniform((batch_size, seq_len), minval=0, maxval=vocab_size, dtype=tf.int32)
+        targets = tf.random.uniform(
+            (batch_size, seq_len), minval=0, maxval=vocab_size, dtype=tf.int32
+        )
 
         return inputs, targets
 
@@ -43,7 +52,9 @@ def label_smoothed_cross_entropy_loss():
 
 def test_label_smoothed_cross_entropy_initialization(loss_fn):
     """Test the loss initialization."""
-    assert isinstance(loss_fn, LabelSmoothedCrossEntropy), "loss is not a LabelSmoothedCrossEntropy instance"
+    assert isinstance(
+        loss_fn, LabelSmoothedCrossEntropy
+    ), "loss is not a LabelSmoothedCrossEntropy instance"
 
 
 def test_label_smoothed_cross_entropy_loss(loss_input_data, loss_fn):
@@ -61,7 +72,7 @@ def test_label_smoothed_cross_entropy_loss(loss_input_data, loss_fn):
 
     # If inputs and targets are identical, loss should be close to zero
     if tf.reduce_all(tf.equal(inputs, tf.one_hot(targets, depth=depth))):
-        assert loss < 1.0,  f"Expected near-zero loss, but got {loss}"
+        assert loss < 1.0, f"Expected near-zero loss, but got {loss}"
 
     # If inputs and targets are completely different, loss should be high
     if tf.reduce_all(tf.equal(inputs, tf.one_hot(3 - targets, depth=depth))):
