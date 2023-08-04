@@ -1,5 +1,5 @@
 # third-party imports
-import tensorflow as tf  # type: ignore
+import tensorflow as tf
 from tensorflow.keras import losses  # type:ignore
 
 

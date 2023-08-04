@@ -1,7 +1,7 @@
 # third-party imports
 import numpy as np
-import tensorflow as tf  # type: ignore
-from tensorflow.keras.optimizers import schedules  # type: ignore
+import tensorflow as tf
+from tensorflow.keras.optimizers import schedules
 
 
 class WarmupLearningRateSchedule(schedules.LearningRateSchedule):

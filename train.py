@@ -1,5 +1,5 @@
 # third-party imports
-import tensorflow as tf  # type: ignore
+import tensorflow as tf
 
 # module imports
 from trainer import Trainer

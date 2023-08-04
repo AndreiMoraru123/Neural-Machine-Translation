@@ -5,10 +5,10 @@ from typing import Union, Tuple, List, Dict
 
 # third-party imports
 import sacrebleu
-import youtokentome  # type: ignore
-import tensorflow as tf  # type: ignore
-from tqdm import tqdm  # type: ignore
-from colorama import Fore, init  # type: ignore
+import youtokentome
+import tensorflow as tf
+from tqdm import tqdm
+from colorama import Fore, init
 
 # module imports
 from model import Transformer

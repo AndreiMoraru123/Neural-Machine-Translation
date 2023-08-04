@@ -3,8 +3,8 @@ import os
 import codecs
 
 # third-party imports
-import youtokentome  # type: ignore
-from tqdm import tqdm  # type: ignore
+import youtokentome
+from tqdm import tqdm
 
 
 def tokenize_and_filter_data(

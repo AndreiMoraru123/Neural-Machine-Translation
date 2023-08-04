@@ -5,12 +5,12 @@ import shutil
 import logging
 
 # third-party imports
-import tensorflow as tf  # type: ignore
-from tensorflow.keras.metrics import Mean  # type: ignore
-from tensorflow.keras.optimizers import Optimizer  # type: ignore
-from tensorboard.plugins import projector  # type: ignore
-from colorama import Fore, init  # type: ignore
-from tqdm import tqdm  # type: ignore
+import tensorflow as tf
+from tensorflow.keras.metrics import Mean
+from tensorflow.keras.optimizers import Optimizer
+from tensorboard.plugins import projector
+from colorama import Fore, init
+from tqdm import tqdm
 
 # module imports
 from model import Transformer

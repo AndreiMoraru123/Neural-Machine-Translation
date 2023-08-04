@@ -6,9 +6,9 @@ from typing import List, Tuple
 from itertools import groupby
 
 # third-party imports
-import youtokentome  # type: ignore
-import tensorflow as tf  # type: ignore
-from tensorflow.keras.preprocessing.sequence import pad_sequences  # type: ignore
+import youtokentome
+import tensorflow as tf
+from tensorflow.keras.preprocessing.sequence import pad_sequences
 
 
 class SequenceLoader(object):
@@ -142,7 +142,7 @@ class SequenceLoader(object):
             true source language lengths, a tensor of size (N)
             true target language lengths, a tensor of size (N)
         """
-        self.current_batch += 1  # type: ignore
+        self.current_batch += 1
 
         try:
             source_data, target_data, source_lengths, target_lengths = zip(

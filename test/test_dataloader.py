@@ -2,8 +2,8 @@
 import os
 
 # third-party imports
-import pytest  # type: ignore
-import tensorflow as tf  # type: ignore
+import pytest
+import tensorflow as tf
 from unittest.mock import patch
 
 # module imports

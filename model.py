@@ -1,8 +1,7 @@
 # third-party imports
 import einops
-import tensorflow as tf  # type: ignore
-from tensorflow.keras import layers  # type: ignore
-from tensorflow.keras import Model  # type: ignore
+import tensorflow as tf
+from tensorflow.keras import layers, Model
 
 
 class MultiHeadAttention(layers.Layer):
