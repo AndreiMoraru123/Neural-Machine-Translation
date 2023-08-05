@@ -615,6 +615,7 @@ class Transformer(Model):
             decoder_sequence_lengths,
             encoder_sequences,
             encoder_sequence_lengths,
+            training=training,
         )
 
         return decoder_sequences
