@@ -90,6 +90,12 @@ After training for a while, some interesting patterns arise. This project integr
 
 In the shared vocabulary between the encoder (english) and decoder (german) we can see some cosine similarities:
 
+#### British with *britischen* and *nationaler*
+![british](https://github.com/AndreiMoraru123/Neural-Machine-Translation/assets/81184255/0ca4381e-5435-4e06-b4c6-3c53ad844d8e)
+
+#### will and *wollte* (& *konnte*, *mochte*, *wurde*)
+![will](https://github.com/AndreiMoraru123/Neural-Machine-Translation/assets/81184255/05b2d4f3-9f9b-4c96-8a23-6f9c25051eff)
+
 #### *Bedenken* (pondering) is closest to *glaube* (believe)
 ![image](https://github.com/AndreiMoraru123/Neural-Machine-Translation/assets/81184255/5de08f03-271c-498b-9ad8-5b49273e0a97)
 
