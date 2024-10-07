@@ -1,1 +1,4 @@
-*.svg linguist-detectable
+*.md linguist-detectable=true
+*.md linguist-language=Markdown
+*.svg linguist-detectable=true
+*.svg linguist-language=SVG
