@@ -71,7 +71,7 @@ All generated sequences in the beam (k=5) search:
 
 These are negative as they are log probabilities, the closest to zero being the top sequence
 
-As a sanity check, the BLUE score should be a perfect `100/100` in all cases:
+As a sanity check, the BLEU score should be a perfect `100/100` in all cases:
 
 ```
 INFO:root:13a tokenization, cased
